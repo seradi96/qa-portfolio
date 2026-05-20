@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { ChevronDownIcon, EnvelopeIcon, MapPinIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import { BriefcaseIcon, CodeBracketIcon, AcademicCapIcon } from '@heroicons/react/24/solid'
+import { QA_CAREER_START, PLAYWRIGHT_START, KARATE_START, getYearsSince } from '@/lib/career'
 
 type SubProject = {
   name: string
@@ -17,22 +18,27 @@ type SubProject = {
 export default function Portfolio() {
   const [activeProject, setActiveProject] = useState<number | null>(null)
   const [hoursWorked, setHoursWorked] = useState(0)
+  const [yearsWorked, setYearsWorked] = useState(() => getYearsSince(QA_CAREER_START))
+  const [playwrightYears, setPlaywrightYears] = useState(() => getYearsSince(PLAYWRIGHT_START))
+  const [karateYears, setKarateYears] = useState(() => getYearsSince(KARATE_START))
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [selectedFilter, setSelectedFilter] = useState('All')
   const [showBackToTop, setShowBackToTop] = useState(false)
 
 
 
-  // Live hours tracker - calculates hours since start date
+  // Live hours tracker - calculates hours and years since QA career start (May 2021)
   useEffect(() => {
-    const startDate = new Date('2021-05-01') // Set your QA career start date
     const updateHours = () => {
       const now = new Date()
-      const diffInMs = now.getTime() - startDate.getTime()
+      const diffInMs = now.getTime() - QA_CAREER_START.getTime()
       const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60))
       // Assuming 8 hours work per day, 5 days per week
       const workingHours = Math.floor(diffInHours * (8/24) * (5/7))
       setHoursWorked(workingHours)
+      setYearsWorked(getYearsSince(QA_CAREER_START))
+      setPlaywrightYears(getYearsSince(PLAYWRIGHT_START))
+      setKarateYears(getYearsSince(KARATE_START))
     }
 
     updateHours()
@@ -73,20 +79,21 @@ export default function Portfolio() {
     "Supabase",
     "EF Core",
     "Azure Key Vault",
-    "GitLab CI/CD"
+    "GitLab CI/CD",
+    "Azure DevOps"
   ],
   tooling: ["Claude Code", "Playwright MCP"],
   highlights: [
     "Sole owner of 3 production QA systems serving the entire engineering org",
     "Designed and built `pulse` from zero: PostgreSQL schema, EF Core data layer, Blazor Server UI, NUnit XML parser, candlestick + trend analytics on ApexCharts",
-    "Authored 5+ custom Claude Code skills now used by the QA team for standardized test and Page Object generation",
+    "Authored 9+ custom Claude Code skills now used by the QA team for standardized test and Page Object generation",
     "Built the SignalR/Blazor independent-circuit perf scenario — first real /_blazor blazorpack handshake load test in the codebase, closing a gap NBomber didn't cover out of the box",
     "Migrated `pulse` to dual-provider data layer (SQLite local + Postgres prod) without schema divergence",
     "Source-generated Razor @page route constants via Tokero.SourceGenerator — eliminates a class of stale-URL test bugs"
   ],
   status: "Ongoing",
   impact: {
-    businessValue: "77 Page Objects · 49 test classes · 11 perf scenarios · 27 perf profiles",
+    businessValue: "77 Page Objects · 49 test classes · 11 perf scenarios · 30+ perf profiles",
     scale: "Sole owner of 3 production QA systems · functional + performance + reporting",
     timeline: "July 2025 - Present"
   },
@@ -117,7 +124,7 @@ export default function Portfolio() {
       name: "Performance Testing Suite (perf)",
       repo: "perf",
       stack: ["NBomber", ".NET 10", "Grafana", "Prometheus", "Supabase Postgres"],
-      metrics: "11 scenarios · 27 profiles · CPU-burn + SignalR + saturation curve",
+      metrics: "11 scenarios · 30+ profiles · CPU-burn + SignalR + saturation curve",
       timeline: "2026 - Present",
       status: "Ongoing",
       highlights: [
@@ -152,7 +159,7 @@ export default function Portfolio() {
    "SAP GUI",
    "SAP ERP",
    "Playwright UI",
-    "Karate API", 
+    "Karate API",
     "Selenium",
     "Cucumber",
     "JUnit",
@@ -162,7 +169,6 @@ export default function Portfolio() {
     "Postman",
     "Grafana",
    "GitLab CI/CD",
-   "Azure DevOps",
    "Kubernetes",
    "Docker",
    "SAP Integration"
@@ -179,7 +185,7 @@ export default function Portfolio() {
  impact: {
    businessValue: "€2M+ prevented losses | 40% faster testing cycles | 25% fewer production defects | Zero safety incidents",
    scale: "2+ billion passengers annually | 340,000+ employees | 33,000+ km rail network | 24/7 operations",
-   timeline: "2023 - Present (Current role)",
+   timeline: "January 2023 - Present (Current role)",
    efficiency: "50% faster issue resolution | 35% faster test execution | 55% automated coverage"
  },
   clientType: "Germany's National Railway Operator & Europe's Largest Rail Network",
@@ -189,14 +195,44 @@ export default function Portfolio() {
     "Delivered enterprise automation supporting €40B Digital Rail transformation program",
     "Led 15+ engineers in critical system bug resolution",
     "Mentored 5+ QAs - building sustainable testing excellence",
- ]
+ ],
+  subProjects: [
+    {
+      name: "Karate API Regression Suite",
+      repo: "karate-api",
+      stack: ["Karate", "Java", "Cucumber", "JUnit", "GitLab CI/CD", "Jira/XRay"],
+      metrics: "TBD — feature files · step definitions · SAP ERP + Spring Boot endpoint coverage",
+      timeline: "2023 - Present",
+      status: "Ongoing",
+      highlights: [
+        "Authored Karate BDD feature files and step definitions over SAP ERP and Spring Boot endpoints",
+        "Parallelized GitLab CI execution with results synced into Jira / XRay",
+        "Modeled complex contract validation for SAP integration endpoints",
+        "TBD — placeholder for next pass after browser walkthrough"
+      ]
+    },
+    {
+      name: "Playwright UI Automation Framework",
+      repo: "playwright-auto",
+      stack: ["Playwright", "TypeScript", "Angular", "SAP GUI", "GitLab CI/CD"],
+      metrics: "TBD — page objects · test specs · Angular + SAP GUI flow coverage",
+      timeline: "2023 - Present",
+      status: "Ongoing",
+      highlights: [
+        "Built Playwright UI framework targeting Angular front-end and SAP GUI flows",
+        "Replaced legacy Selenium suite — accelerated release cycles by 35%",
+        "Stable selectors against SAP-rendered components with retry harness",
+        "TBD — placeholder for next pass after browser walkthrough"
+      ]
+    }
+  ]
 },
  {
   title: "DentsplySirona - Medical Device CAD/CAM Software Testing & QA Leadership",
-  description: "Led precision testing for medical manufacturing systems ensuring ±0.001mm accuracy standards. Delivered 100% on-time deliverables as interim team lead during critical product launches. Resolved 100+ critical defects with 99% clarity, reducing developer resolution time by 40% for CAD/CAM workflows.",
+  description: "Led precision testing for medical manufacturing systems ensuring ±0.001mm accuracy standards. Delivered 100% on-time deliverables as interim team lead during critical product launches. Resolved 65+ critical defects with 99% clarity, reducing developer resolution time by 40% for CAD/CAM workflows.",
   technologies: [
     "CAD/CAM Testing",
-    "Jira", 
+    "Jira",
     "Windows Testing",
     "Functional Testing",
     "Regression Testing",
@@ -226,19 +262,18 @@ export default function Portfolio() {
   keyAchievements: [
     "Acted as primary QA liaison at client HQ maintaining direct developer communication",
     "Stepped in as interim team lead for 3 months achieving 100% on-time deliverables",
-    "Reported 100+ defects with 99% clarity including detailed reproducibility steps",
-    "Mentored 3 junior testers improving team-wide Jira ticket quality by 50%",
+    "Reported 65+ defects with 99% clarity including detailed reproducibility steps",
     "Led precision boundary testing ensuring ±0.001mm manufacturing tolerance compliance",
   ]
 },
     {
   title: "Happy Media - Full-Stack Development & Digital Campaign Management Platform",
-  description: "Increased client acquisition rates by 35% and reduced manual work by 80% through quality-focused development. Delivered 2000+ successful campaigns with 99.9% uptime for Romania's leading advertising agency. Built scalable solutions that transformed 200+ SMEs from local businesses into digital market leaders across Eastern Europe.",
+  description: "Increased client acquisition rates by 35% and reduced manual work by 80% through quality-focused development. Maintained 99.9% uptime for Romania's leading advertising agency. Built scalable solutions that transformed 100+ SMEs from local businesses into digital market leaders across Eastern Europe.",
   technologies: [
-    "WordPress", 
+    "WordPress",
     "CSS3",
     "PHP",
-    "JavaScript", 
+    "JavaScript",
     "jQuery",
     "MySQL",
     "HTML5",
@@ -247,7 +282,7 @@ export default function Portfolio() {
     "Google Analytics"
   ],
   highlights: [
-    "Delivered 200+ websites with 99.9% uptime generating millions in client revenue",
+    "Delivered 10+ websites with 99.9% uptime generating millions in client revenue",
     "Eliminated 80% of manual reporting work saving 1000+ hours annually for account teams",
     "Increased client conversions by 35% through data-driven landing page optimization",
     "Future-proofed client investments with mobile-first designs capturing 70%+ mobile traffic",
@@ -257,13 +292,13 @@ export default function Portfolio() {
   status: "Done",
   impact: {
     businessValue: "35% higher client conversion | 80% reduction in manual processes | €500K+ revenue growth enabled",
-    scale: "200+ satisfied clients | 2000+ campaigns delivered | 99.9% uptime achieved",
+    scale: "10+ satisfied clients | 99.9% uptime achieved",
     timeline: "May 2021 - May 2022 (Foundation phase)"
   },
-  clientType: "Full-Service Advertising Agency - 200+ Active Clients",
+  clientType: "Full-Service Advertising Agency",
   role: "Full-Stack Developer",
   keyAchievements: [
-    "Delivered 200+ custom solutions with 100% client satisfaction rate",
+    "Delivered 10+ custom solutions with 100% client satisfaction rate",
     "Implemented QA protocols preventing costly project failures and client churn",
     "Built rapid deployment frameworks reducing project delivery time by 60%",
     "Created conversion-optimized e-commerce solutions driving 35% higher sales",
@@ -295,7 +330,7 @@ export default function Portfolio() {
     'Functional Testing'
   ]
   const filterOptions = qaFilterOptions
-  
+
   // Filter projects based on selected technology (matches technologies + tooling)
   const filteredProjects = selectedFilter === 'All'
     ? projects
@@ -307,9 +342,9 @@ export default function Portfolio() {
 
   const skills = {
     "Testing Frameworks": ["Playwright", "Selenium WebDriver", "Karate API Testing", "NBomber", "TestNG", "JUnit", "xUnit/NUnit"],
-    "Programming": ["JavaScript/TypeScript", "Java", ".NET Core/C#", "SQL"],
+    "Programming": ["JavaScript/TypeScript", "Java", ".NET Core/C#"],
     "Tools & Platforms": ["Docker", "Kubernetes", "Jenkins", "GitLab CI/CD", "Azure DevOps", "Postman", "SoapUI", "Jira/XRay", "Grafana", "Prometheus"],
-    "Testing Specialties": ["API Testing", "UI Automation", "BDD/Cucumber", "Performance/Load Testing", "Database Testing", "Security Testing", "SignalR/WebSocket Testing"],
+    "Testing Specialties": ["API Testing", "UI Automation", "BDD/Cucumber", "Performance/Load Testing", "Database Testing", "SignalR/WebSocket Testing"],
     "AI-Augmented QA": [
       "Claude Code",
       "Custom Skill Authoring (.claude/skills)",
@@ -329,7 +364,7 @@ export default function Portfolio() {
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <h1 className="text-xl font-bold text-white">Șerban Andrei</h1>
-            
+
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8" role="navigation" aria-label="Main navigation">
               <a href="#about" className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:rounded-md px-2 py-1">About</a>
@@ -337,7 +372,7 @@ export default function Portfolio() {
               <a href="#architecture" className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:rounded-md px-2 py-1">Architecture</a>
               <a href="#skills" className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:rounded-md px-2 py-1">Skills</a>
               <a href="#contact" className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:rounded-md px-2 py-1">Contact</a>
-              
+
             </div>
 
             {/* Mobile Menu Button */}
@@ -360,15 +395,15 @@ export default function Portfolio() {
           {isMobileMenuOpen && (
             <div className="md:hidden mt-4 pb-4 border-t border-white/10" role="navigation" aria-label="Mobile navigation">
               <div className="flex flex-col space-y-4 pt-4">
-                <a 
-                  href="#about" 
+                <a
+                  href="#about"
                   className="transition-colors py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:rounded-md px-2 text-gray-300 hover:text-white"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   About
                 </a>
-                <a 
-                  href="#projects" 
+                <a
+                  href="#projects"
                   className="transition-colors py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:rounded-md px-2 text-gray-300 hover:text-white"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
@@ -388,8 +423,8 @@ export default function Portfolio() {
                 >
                   Skills
                 </a>
-                <a 
-                  href="#contact" 
+                <a
+                  href="#contact"
                   className="transition-colors py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:rounded-md px-2 text-gray-300 hover:text-white"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
@@ -418,11 +453,11 @@ export default function Portfolio() {
               Bridging technical excellence with human connection to build resilient teams and robust software.
             </p>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <div className="relative group">
-              <a 
-                href="#projects" 
+              <a
+                href="#projects"
                 className="bg-gradient-to-r from-amber-600 to-yellow-600 text-black px-8 py-4 rounded-xl font-semibold hover:shadow-2xl hover:shadow-amber-500/30 transition-all duration-300 inline-flex items-center justify-center space-x-3 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black"
                 aria-label="View my project portfolio"
               >
@@ -441,8 +476,8 @@ export default function Portfolio() {
               </a>
             </div>
             <div className="relative group">
-              <a 
-                href="#contact" 
+              <a
+                href="#contact"
                 className="bg-gradient-to-r from-gray-800/80 to-gray-700/80 backdrop-blur-sm border border-amber-400/30 text-white px-8 py-4 rounded-xl font-semibold hover:bg-gradient-to-r hover:from-gray-700/90 hover:to-gray-600/90 hover:shadow-2xl hover:shadow-amber-500/25 transition-all duration-300 inline-flex items-center justify-center space-x-3 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black"
                 aria-label="Get in touch with me"
               >
@@ -471,7 +506,7 @@ export default function Portfolio() {
             </div>
             <div className="flex items-center space-x-2">
               <BriefcaseIcon className="w-5 h-5" />
-              <span>5+ Years in Tech</span>
+              <span>{yearsWorked}+ Years in Tech</span>
             </div>
           </div>
         </div>
@@ -547,7 +582,7 @@ export default function Portfolio() {
                 </div>
               </div>
             </div>
-            
+
             <div className="bg-white/5 p-8 rounded-2xl border border-white/10 space-y-6">
               <div>
                 <h3 className="text-2xl font-bold text-white mb-4">Beyond Quality Assurance... I am</h3>
@@ -566,7 +601,7 @@ export default function Portfolio() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="border-t border-white/10 pt-6">
                 <h3 className="text-xl font-bold text-white mb-4">Let's Connect If You...</h3>
                 <div className="space-y-2">
@@ -586,7 +621,7 @@ export default function Portfolio() {
       {/* KPI Metrics Section */}
       <section className="py-20 px-6 bg-black/10">
         <div className="max-w-6xl mx-auto">
-          
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="relative group">
               <div className="bg-gradient-to-br from-amber-600/20 to-yellow-600/10 p-6 rounded-2xl border border-amber-400/30 text-center transform transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-500/25">
@@ -625,7 +660,7 @@ export default function Portfolio() {
                     </div>
                   </div>
                 </div>
-                <div className="text-3xl font-bold text-white mb-2">25+</div>
+                <div className="text-3xl font-bold text-white mb-2">15+</div>
                 <p className="text-gray-300 text-sm font-medium">Projects</p>
                 <p className="text-amber-400 text-xs mt-1 font-medium">🚀 Delivered</p>
               </div>
@@ -694,7 +729,7 @@ export default function Portfolio() {
       <section className="py-20 px-6">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-4xl font-bold text-white mb-12 text-center">Key Wins & Impact</h2>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="relative group">
               <div className="bg-gradient-to-br from-amber-600/20 to-yellow-600/10 p-6 rounded-2xl border border-amber-400/30 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-500/25">
@@ -738,8 +773,8 @@ export default function Portfolio() {
                   Playwright E2E testing with parallel execution and auto-waiting
                 </p>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-amber-400 mb-1">60%</div>
-                  <p className="text-gray-400 text-xs">Faster feedback loops</p>
+                  <div className="text-3xl font-bold text-amber-400 mb-1">40%</div>
+                  <p className="text-gray-400 text-xs">Faster testing cycles</p>
                 </div>
               </div>
             </div>
@@ -837,7 +872,7 @@ export default function Portfolio() {
               </div>
             )}
           </div>
-          
+
           {/* Compact Project Grid */}
           <div className="grid md:grid-cols-2 gap-6">
             {filteredProjects.map((project, filteredIndex) => {
@@ -845,7 +880,7 @@ export default function Portfolio() {
               // Extract key impact number from business value
               const impactMatch = project.impact.businessValue.match(/[€\$][\d.]+[MK+]*|[\d]+%|[\d.]+[MBK+]*/)
               const keyImpact = impactMatch ? impactMatch[0] : project.impact.timeline || 'Production'
-              
+
               return (
                 <div
                   key={originalIndex}
@@ -886,8 +921,8 @@ export default function Portfolio() {
                     <div className="flex items-center space-x-2">
                       <div className="relative">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium inline-flex items-center space-x-1 ${
-                          project.status === 'Production' 
-                            ? 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 border border-amber-500/30' 
+                          project.status === 'Production'
+                            ? 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 border border-amber-500/30'
                             : 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 border border-amber-500/30'
                         }`}>
                           <div className={`w-2 h-2 rounded-full ${
@@ -899,20 +934,15 @@ export default function Portfolio() {
                     </div>
                   </div>
                   <p className="text-gray-300 text-sm leading-relaxed mb-4">{project.description}</p>
-                  
+
                   <div className="flex flex-wrap gap-2">
                     {project.technologies.slice(0, 3).map((tech, techIndex) => (
                       <span key={techIndex} className="bg-gradient-to-r from-slate-600/30 to-slate-700/30 text-slate-300 px-2 py-1 rounded-lg text-xs font-medium border border-slate-500/20">
                         {tech}
                       </span>
                     ))}
-                    {project.technologies.length > 3 && (
-                      <span className="text-amber-400 text-xs font-medium px-2 py-1">
-                        +{project.technologies.length - 3} more
-                      </span>
-                    )}
                   </div>
-                  
+
                   {/* Expanded Details */}
                   {activeProject === originalIndex && (
                     <div className="mt-4 pt-4 border-t border-amber-400/30 space-y-4">
@@ -1053,7 +1083,7 @@ export default function Portfolio() {
                       )}
                     </div>
                   )}
-                  
+
                   {activeProject === originalIndex && (
                     <div className="absolute -right-2 top-1/2 transform -translate-y-1/2">
                       <div className="w-4 h-4 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full animate-bounce"></div>
@@ -1067,9 +1097,9 @@ export default function Portfolio() {
       </section>
 
       {/* Architecture & Approach Section */}
-      <section id="architecture" className="py-20 px-6 bg-black/10">
+      <section id="architecture" className="py-20 px-4 sm:px-6 bg-black/10">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-white mb-4 text-center">Architecture &amp; Approach</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 text-center">Architecture &amp; Approach</h2>
           <p className="text-gray-300 text-center max-w-3xl mx-auto mb-12 leading-relaxed">
             How I architect end-to-end QA stacks — design patterns, layering, and tooling choices.
             Generalized from production work (business logic, scenario names, internal endpoints, and customer-specific data omitted).
@@ -1079,7 +1109,7 @@ export default function Portfolio() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
 
             {/* Functional Framework */}
-            <div className="bg-gradient-to-br from-amber-600/20 to-yellow-600/10 p-6 rounded-2xl border border-amber-400/30 hover:shadow-2xl hover:shadow-amber-500/25 transition-all duration-300">
+            <div className="min-w-0 bg-gradient-to-br from-amber-600/20 to-yellow-600/10 p-6 rounded-2xl border border-amber-400/30 hover:shadow-2xl hover:shadow-amber-500/25 transition-all duration-300">
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-xl flex items-center justify-center mr-3">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2a4 4 0 014-4h4M9 17H5a2 2 0 01-2-2v-4a2 2 0 012-2h4M9 17l3-3M21 7l-3-3M21 7v4a2 2 0 01-2 2h-4M21 7l-3 3" /></svg>
@@ -1127,7 +1157,7 @@ export default function Portfolio() {
             </div>
 
             {/* Performance Suite */}
-            <div className="bg-gradient-to-br from-yellow-600/20 to-amber-600/10 p-6 rounded-2xl border border-yellow-400/30 hover:shadow-2xl hover:shadow-yellow-500/25 transition-all duration-300">
+            <div className="min-w-0 bg-gradient-to-br from-yellow-600/20 to-amber-600/10 p-6 rounded-2xl border border-yellow-400/30 hover:shadow-2xl hover:shadow-yellow-500/25 transition-all duration-300">
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-xl flex items-center justify-center mr-3">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
@@ -1148,7 +1178,7 @@ export default function Portfolio() {
                 </div>
                 <div>
                   <div className="text-amber-400 font-semibold mb-1 text-xs uppercase tracking-wide">Profile Tiers</div>
-                  <p>~25 ready-made profiles: Quick smoke, Progressive ramp, CDN-safe, Standard (origin), Stress / Spike.</p>
+                  <p>30+ ready-made profiles: Quick smoke, Progressive ramp, CDN-safe, Standard (origin), Stress / Spike.</p>
                 </div>
                 <div>
                   <div className="text-amber-400 font-semibold mb-1 text-xs uppercase tracking-wide">Observability</div>
@@ -1169,7 +1199,7 @@ export default function Portfolio() {
 │   ├── Diagnostics/ // Pod + CPU/Mem tracking
 │   ├── Grafana/     // Dashboard provisioning
 │   └── Sentry/      // Error tracking
-├── Profiles/        // 36 load profiles
+├── Profiles/        // 30+ load profiles
 ├── Dashboard/       // Separate Blazor app
 ├── TestData/        // Sanitized fixtures
 └── Tokero.PerfTests.slnx`}
@@ -1179,7 +1209,7 @@ export default function Portfolio() {
             </div>
 
             {/* Reporting Platform */}
-            <div className="bg-gradient-to-br from-black/30 to-amber-900/10 p-6 rounded-2xl border border-amber-400/30 hover:shadow-2xl hover:shadow-amber-500/25 transition-all duration-300">
+            <div className="min-w-0 bg-gradient-to-br from-black/30 to-amber-900/10 p-6 rounded-2xl border border-amber-400/30 hover:shadow-2xl hover:shadow-amber-500/25 transition-all duration-300">
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 bg-gradient-to-r from-amber-500 to-black rounded-xl flex items-center justify-center mr-3">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
@@ -1233,7 +1263,7 @@ export default function Portfolio() {
           <div className="grid md:grid-cols-2 gap-6">
 
             {/* DB engagement */}
-            <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
+            <div className="min-w-0 bg-white/5 p-6 rounded-2xl border border-white/10">
               <div className="flex items-center mb-4">
                 <div className="w-10 h-10 bg-gradient-to-r from-amber-600 to-yellow-600 rounded-lg flex items-center justify-center mr-3">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
@@ -1266,7 +1296,7 @@ export default function Portfolio() {
             </div>
 
             {/* AI-Augmented Workflow */}
-            <div className="bg-gradient-to-br from-cyan-600/15 to-blue-600/10 p-6 rounded-2xl border border-cyan-400/30">
+            <div className="min-w-0 bg-gradient-to-br from-cyan-600/15 to-blue-600/10 p-6 rounded-2xl border border-cyan-400/30">
               <div className="flex items-center mb-4">
                 <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center mr-3">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
@@ -1274,7 +1304,7 @@ export default function Portfolio() {
                 <h3 className="text-lg font-bold text-white">AI-Augmented Authoring Loop</h3>
               </div>
               <div className="space-y-2 text-sm text-gray-300">
-                <p><span className="text-cyan-300 font-semibold">5+ custom Claude Code skills</span> for standardized Page Object &amp; test generation (e.g. /generate-page, /generate-test, /verify-test, /debug-failure).</p>
+                <p><span className="text-cyan-300 font-semibold">9+ custom Claude Code skills</span> for standardized Page Object &amp; test generation (e.g. /generate-page, /generate-test, /verify-test, /debug-failure).</p>
                 <p><span className="text-cyan-300 font-semibold">Playwright MCP</span> integration — agentic UI verification of new tests interactively before commit.</p>
                 <p><span className="text-cyan-300 font-semibold">Subagent-driven roles</span> — planner / generator / reviewer separation for higher-quality artifacts.</p>
                 <p><span className="text-cyan-300 font-semibold">Plan-first / spec-driven</span> — flow goes specs → executable plans → implementation, keeping tests aligned with intent.</p>
@@ -1326,10 +1356,10 @@ export default function Portfolio() {
                 <svg key="icon-3" className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
                 <svg key="icon-4" className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.847.813a4.5 4.5 0 00-3.09 3.091zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"/></svg>
               ];
-              
+
               return (
-                <div key={index} className="relative group">
-                  <div className={`bg-gradient-to-br ${color.bg} p-6 rounded-2xl border ${color.border} transform transition-all duration-300 hover:scale-105 hover:shadow-2xl ${color.shadow}`}>
+                <div key={index} className="relative group h-full">
+                  <div className={`h-full bg-gradient-to-br ${color.bg} p-6 rounded-2xl border ${color.border} transform transition-all duration-300 hover:scale-105 hover:shadow-2xl ${color.shadow}`}>
                     <div className="relative mb-4">
                       <div className={`w-12 h-12 bg-gradient-to-r ${color.icon} rounded-full flex items-center justify-center shadow-lg mx-auto`}>
                         {icons[index % icons.length]}
@@ -1379,7 +1409,7 @@ export default function Portfolio() {
         <div className="max-w-6xl mx-auto">
           <h2 className="text-4xl font-bold text-white mb-12 text-center">Certifications & Learning</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            
+
             {/* ISTQB Foundation */}
             <div className="relative group">
               <div className="bg-gradient-to-br from-amber-600/20 to-yellow-600/10 p-6 rounded-2xl border border-amber-400/30 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-500/25">
@@ -1406,6 +1436,32 @@ export default function Portfolio() {
               </div>
             </div>
 
+            {/* PSM I Certification */}
+            <div className="relative group">
+              <div className="bg-gradient-to-br from-yellow-600/20 to-amber-600/10 p-6 rounded-2xl border border-yellow-400/30 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/25">
+                <div className="relative mb-4">
+                  <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg mx-auto">
+                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                  </div>
+                </div>
+                <h3 className="text-lg font-bold text-white text-center mb-2">Professional Scrum Master I</h3>
+                <p className="text-gray-300 text-sm text-center mb-3 leading-relaxed">
+                  PSM I — Scrum framework fundamentals and Agile delivery practices
+                </p>
+                <div className="text-center">
+                  <div className="text-sm text-amber-400 mb-1 font-medium">Done</div>
+                  <p className="text-gray-400 text-xs">Scrum.org certified</p>
+                </div>
+              </div>
+            </div>
+
             {/* Playwright Certification */}
             <div className="relative group">
               <div className="bg-gradient-to-br from-yellow-600/20 to-amber-600/10 p-6 rounded-2xl border border-yellow-400/30 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/25">
@@ -1423,12 +1479,12 @@ export default function Portfolio() {
                 </p>
                 <div className="text-center">
                   <div className="text-sm text-amber-400 mb-1 font-medium">Professional Experience</div>
-                  <p className="text-gray-400 text-xs">3+ years hands-on</p>
+                  <p className="text-gray-400 text-xs">{playwrightYears}+ years hands-on</p>
                 </div>
               </div>
             </div>
 
-            {/* Azure DevOps */}
+            {/* GitLab */}
             <div className="relative group">
               <div className="bg-gradient-to-br from-black/30 to-amber-900/10 p-6 rounded-2xl border border-amber-400/30 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-500/25">
                 <div className="relative mb-4">
@@ -1496,19 +1552,19 @@ export default function Portfolio() {
                   Karate Framework, Postman, and microservices validation
                 </p>
                 <div className="text-center">
-                  <div className="text-sm text-amber-400 mb-1 font-medium">Specialized</div>
-                  <p className="text-gray-400 text-xs">Core competency</p>
+                  <div className="text-sm text-amber-400 mb-1 font-medium">Professional Experience</div>
+                  <p className="text-gray-400 text-xs">{karateYears}+ years hands-on</p>
                 </div>
               </div>
             </div>
 
             {/* Continuous Learning */}
-            <div className="relative group">
+            <div className="relative group lg:col-start-2">
               <div className="bg-gradient-to-br from-black/40 to-yellow-600/10 p-6 rounded-2xl border border-yellow-400/30 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-500/25">
                 <div className="relative mb-4">
                   <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-black rounded-full flex items-center justify-center shadow-lg mx-auto">
-                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 3l1.09 3.26L16 7.09l-2.91 1.09L12 11.18l-1.09-3-L8 7.09l2.91-1.09L12 3zm7 8l-1.09 3.26L15 15.09l2.91 1.09L19 19.18l1.09-3L23 15.09l-2.91-1.09L19 11zM12 6l-.44 1.27L10.27 8l1.29.73L12 10.8l.44-1.27L13.73 8l-1.29-.73L12 6zM19 14l-.22.63L18.15 15l.63.37L19 15.8l.22-.63L19.85 15l-.63-.37L19 14z"/>
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                     </svg>
                   </div>
                   <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
@@ -1539,7 +1595,7 @@ export default function Portfolio() {
                   </svg>
                 </div>
                 <h4 className="text-white font-semibold mb-2">Technical/QA Lead</h4>
-                <p className="text-gray-300 text-sm">Advancing toward Tech/QA Lead through strategic test leadership, 
+                <p className="text-gray-300 text-sm">Advancing toward Tech/QA Lead through strategic test leadership,
                   team mentoring, and enterprise-scale automation frameworks
                 </p>
               </div>
@@ -1571,17 +1627,17 @@ export default function Portfolio() {
         <div className="max-w-4xl mx-auto">
           <h2 className="text-4xl font-bold text-white mb-6 text-center">Let's Work Together</h2>
           <p className="text-xl text-gray-300 mb-12 max-w-2xl mx-auto text-center">
-            Interested in discussing QA automation opportunities or have questions about testing strategies? 
+            Interested in discussing QA automation opportunities or have questions about testing strategies?
             I'd love to hear from you.
           </p>
-          
+
           <div className="max-w-lg mx-auto">
             {/* Contact Links */}
             <div className="bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-sm p-6 rounded-2xl border border-white/10">
               <h3 className="text-xl font-bold text-white mb-4 text-center">Connect Directly</h3>
-                
+
                 <div className="space-y-4">
-                  <a 
+                  <a
                     href="https://www.linkedin.com/in/%C8%99erban-andrei-5a14a51a5/"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -1599,7 +1655,7 @@ export default function Portfolio() {
                       <div className="text-gray-300 text-sm">Professional network</div>
                     </div>
                   </a>
-                  
+
                   <a
                     href="mailto:andre.serban96@gmail.com"
                     className="flex items-center space-x-4 p-4 bg-gradient-to-r from-gray-800/50 to-black/50 border border-amber-400/30 rounded-lg hover:bg-gradient-to-r hover:from-gray-700/60 hover:to-gray-800/60 transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-amber-500"
@@ -1640,11 +1696,11 @@ export default function Portfolio() {
                     </div>
                   </a>
                 </div>
-              
+
               <div className="mt-6 p-4 bg-gradient-to-br from-white/5 to-white/2 rounded-lg border border-white/10">
                 <h4 className="text-lg font-bold text-white mb-3">Quick Response Time</h4>
                 <p className="text-gray-300 text-sm leading-relaxed">
-                  I typically respond to messages within 24 hours. For urgent matters, 
+                  I typically respond to messages within 24 hours. For urgent matters,
                   LinkedIn tends to be the fastest way to reach me.
                 </p>
               </div>

@@ -53,3 +53,4 @@ secret*.txt
 # Claude session leftovers
 .claude-session/
 session-*.json
+.claude/
