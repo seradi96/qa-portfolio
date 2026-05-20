@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { QA_CAREER_START, getYearsSince } from "@/lib/career";
+
+const yearsInTech = getYearsSince(QA_CAREER_START);
 
 const inter = Inter({
   variable: "--font-inter",
@@ -15,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://aserban.ro"),
   title: "Șerban Andrei - Senior QA Automation Engineer & Test Architect",
-  description: "Senior QA Automation Engineer & Test Architect. 5+ years in tech with concurrent senior engagements at TOKERO (Playwright .NET, NBomber, Blazor reporting) and Heaven Solutions / Deutsche Bahn (Karate API, Playwright UI). AI-augmented QA practitioner.",
+  description: `Senior QA Automation Engineer & Test Architect. ${yearsInTech}+ years in tech with concurrent senior engagements at TOKERO (Playwright .NET, NBomber, Blazor reporting) and Heaven Solutions / Deutsche Bahn (Karate API, Playwright UI). AI-augmented QA practitioner.`,
   keywords: [
     "QA Automation Engineer",
     "Test Architect",
