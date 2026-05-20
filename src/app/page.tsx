@@ -941,11 +941,6 @@ export default function Portfolio() {
                         {tech}
                       </span>
                     ))}
-                    {project.technologies.length > 3 && (
-                      <span className="text-amber-400 text-xs font-medium px-2 py-1">
-                        +{project.technologies.length - 3} more
-                      </span>
-                    )}
                   </div>
 
                   {/* Expanded Details */}
@@ -1363,8 +1358,8 @@ export default function Portfolio() {
               ];
 
               return (
-                <div key={index} className="relative group">
-                  <div className={`bg-gradient-to-br ${color.bg} p-6 rounded-2xl border ${color.border} transform transition-all duration-300 hover:scale-105 hover:shadow-2xl ${color.shadow}`}>
+                <div key={index} className="relative group h-full">
+                  <div className={`h-full bg-gradient-to-br ${color.bg} p-6 rounded-2xl border ${color.border} transform transition-all duration-300 hover:scale-105 hover:shadow-2xl ${color.shadow}`}>
                     <div className="relative mb-4">
                       <div className={`w-12 h-12 bg-gradient-to-r ${color.icon} rounded-full flex items-center justify-center shadow-lg mx-auto`}>
                         {icons[index % icons.length]}
@@ -1564,12 +1559,12 @@ export default function Portfolio() {
             </div>
 
             {/* Continuous Learning */}
-            <div className="relative group">
+            <div className="relative group lg:col-start-2">
               <div className="bg-gradient-to-br from-black/40 to-yellow-600/10 p-6 rounded-2xl border border-yellow-400/30 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-amber-500/25">
                 <div className="relative mb-4">
                   <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-black rounded-full flex items-center justify-center shadow-lg mx-auto">
-                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 3l1.09 3.26L16 7.09l-2.91 1.09L12 11.18l-1.09-3-L8 7.09l2.91-1.09L12 3zm7 8l-1.09 3.26L15 15.09l2.91 1.09L19 19.18l1.09-3L23 15.09l-2.91-1.09L19 11zM12 6l-.44 1.27L10.27 8l1.29.73L12 10.8l.44-1.27L13.73 8l-1.29-.73L12 6zM19 14l-.22.63L18.15 15l.63.37L19 15.8l.22-.63L19.85 15l-.63-.37L19 14z"/>
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                     </svg>
                   </div>
                   <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
