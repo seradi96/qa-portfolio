@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# aserban.ro — Personal portfolio
 
-## Getting Started
+Portfolio site of **Andrei Șerban** — Senior QA Automation Engineer & Test Architect.
 
-First, run the development server:
+Live: **[aserban.ro](https://aserban.ro)**
+
+## Stack
+
+- **Next.js 16** (App Router, React 19)
+- **TypeScript** (strict)
+- **Tailwind CSS 4** (utility-first)
+- **Heroicons** (UI icons)
+- Schema.org JSON-LD (`Person` + `WebSite`) for SEO / knowledge panel
+- Deployed on **Vercel**
+
+## Sections
+
+- Hero with live "hours worked" counter
+- About — current obsessions + how I approach QA
+- KPI metrics
+- Featured Projects (filterable by tech)
+- **Architecture & Approach** — patterns, layering, and folder structures for the three production QA stacks I own (functional, performance, reporting), plus the railway QA stack and AI-augmented authoring loop
+- Technical Skills
+- Certifications & Learning Goals
+- Contact
+
+## Development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev          # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Production
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+npm run start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project files of note
 
-## Learn More
+- `src/app/page.tsx` — single-page portfolio (all content)
+- `src/app/layout.tsx` — metadata, OG tags, JSON-LD structured data
+- `build_cv.js` — generator script for the CV PDF / DOCX (uses `docx-js` + LibreOffice for PDF conversion)
+- `CV-Changes-and-Final.md` — changelog and canonical CV content as Markdown
+- `Andrei-Serban-CV.pdf` / `.docx` — current CV outputs
 
-To learn more about Next.js, take a look at the following resources:
+## License
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Personal portfolio — content © Andrei Șerban. Code structure free to fork as a Next.js starting point.
