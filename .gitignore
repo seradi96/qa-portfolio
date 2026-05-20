@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# user-specific scratch & secrets (never commit)
+*.zip
+*.tar.gz
+*.log
+preview*.jpg
+preview*.png
+connection-string*.txt
+secret*.txt
+*-secrets.json
+
+# Claude session leftovers
+.claude-session/
+session-*.json
