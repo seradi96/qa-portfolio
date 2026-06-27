@@ -199,30 +199,30 @@ export default function Portfolio() {
   subProjects: [
     {
       name: "Karate API Regression Suite",
-      repo: "karate-api",
-      stack: ["Karate", "Java", "Cucumber", "JUnit", "GitLab CI/CD", "Jira/XRay"],
-      metrics: "TBD — feature files · step definitions · SAP ERP + Spring Boot endpoint coverage",
+      repo: "act-backend-tests",
+      stack: ["Karate", "Java 17", "JUnit 5", "Maven", "Spring JDBC", "PostgreSQL / MySQL / Oracle", "Kubernetes", "GitLab CI/CD", "Jira/XRay"],
+      metrics: "264 feature files · 264 scenarios · 23 API services · 17 service domains · 134 SQL scripts",
       timeline: "2023 - Present",
       status: "Ongoing",
       highlights: [
-        "Authored Karate BDD feature files and step definitions over SAP ERP and Spring Boot endpoints",
-        "Parallelized GitLab CI execution with results synced into Jira / XRay",
-        "Modeled complex contract validation for SAP integration endpoints",
-        "TBD — placeholder for next pass after browser walkthrough"
+        "23-job sequential regression pipeline across 17 microservice domains with Cucumber report aggregation and GitLab Pages deploy",
+        "Multi-database test infrastructure (PostgreSQL, MySQL, Oracle) with K8s secret injection and environment-aware schema resolution via CSV lookup",
+        "Custom polling utilities (waitUntil / waitForObject) for async API verification with configurable timeout and interval",
+        "Jira XRay integration publishing JUnit XML results plus karate logs as attachments to test plans"
       ]
     },
     {
       name: "Playwright UI Automation Framework",
-      repo: "playwright-auto",
-      stack: ["Playwright", "TypeScript", "Angular", "SAP GUI", "GitLab CI/CD"],
-      metrics: "TBD — page objects · test specs · Angular + SAP GUI flow coverage",
+      repo: "playwright-tests-automation",
+      stack: ["Playwright", "TypeScript", "openapi-fetch", "openapi-typescript", "PostgreSQL", "GitLab CI/CD", "Jira/XRay"],
+      metrics: "22 page objects · 152 spec files · 254 test cases · 44 API services · 22 app areas",
       timeline: "2023 - Present",
       status: "Ongoing",
       highlights: [
-        "Built Playwright UI framework targeting Angular front-end and SAP GUI flows",
-        "Replaced legacy Selenium suite — accelerated release cycles by 35%",
-        "Stable selectors against SAP-rendered components with retry harness",
-        "TBD — placeholder for next pass after browser walkthrough"
+        "Custom fixture layer injects typed API clients (openapi-fetch), DB connections, and page objects — zero boilerplate in test files",
+        "Locator/Page separation pattern: 17 locator classes composed into 22 page objects, keeping selectors stable independent of page logic",
+        "Multi-user test infrastructure via UserManager / UserSession fixtures for concurrent-session scenarios",
+        "OpenAPI-generated TypeScript types for 44 microservices with an environment-aware client factory across 7 deployment targets"
       ]
     }
   ]
@@ -1271,27 +1271,44 @@ export default function Portfolio() {
                 <h3 className="text-lg font-bold text-white">Railway QA Stack (separate engagement)</h3>
               </div>
               <div className="space-y-2 text-sm text-gray-300">
-                <p><span className="text-amber-400 font-semibold">Karate API regression suite</span> (BDD, Java) — feature files + step definitions over SAP ERP and Spring Boot endpoints.</p>
-                <p><span className="text-amber-400 font-semibold">Playwright UI framework</span> (TypeScript) — exercising the Angular front-end and SAP GUI flows.</p>
-                <p><span className="text-amber-400 font-semibold">CI integration</span> — GitLab CI / Jenkins with parallelized execution; reports surfaced into Jira / XRay.</p>
-                <p><span className="text-amber-400 font-semibold">Coverage focus</span> — 500+ critical railway-management workflows; legacy Selenium suites kept alive during migration.</p>
+                <p><span className="text-amber-400 font-semibold">Karate API regression suite</span> (Java 17) — 264 feature files across 17 microservice domains (billing, train-path, master-data), exercising 23 services.</p>
+                <p><span className="text-amber-400 font-semibold">Playwright UI framework</span> (TypeScript) — 22 page objects with separated locator classes, 152 specs / 254 tests, plus typed OpenAPI clients for 44 services.</p>
+                <p><span className="text-amber-400 font-semibold">CI integration</span> — GitLab CI: Karate runs a 23-job sequential regression pipeline; reports to GitLab Pages and synced into Jira / XRay.</p>
+                <p><span className="text-amber-400 font-semibold">Test data &amp; infra</span> — multi-database setup (PostgreSQL / MySQL / Oracle) with Kubernetes secret injection; 134 SQL scripts plus Excel/JSON fixtures.</p>
               </div>
               <div className="mt-4 pt-3 border-t border-white/10">
                 <div className="text-amber-400 font-semibold mb-2 text-xs uppercase tracking-wide">Representative Structure</div>
                 <pre className="font-mono text-[11px] leading-relaxed text-gray-400 overflow-x-auto whitespace-pre bg-black/30 rounded-lg p-3">
-{`railway-qa/
-├── api-tests/             // Karate (BDD, Java)
-│   ├── features/          // .feature files by domain
-│   ├── stepdefs/          // Step definitions
-│   └── karate-config.js
-├── ui-tests/              // Playwright (TypeScript)
-│   ├── pages/             // POs (Angular + SAP GUI)
-│   ├── tests/             // Specs by feature
-│   └── playwright.config.ts
-├── reports/               // Allure + JUnit XML
-└── .gitlab-ci.yml         // Parallel exec + XRay sync`}
+{`act-backend-tests/          // Karate API · Java 17
+├── src/test/java/
+│   ├── karate-config.js    // env switch (tu/abn/e2e/eu) + URLs
+│   ├── services/
+│   │   ├── BaseTest.java   // parallel run + Cucumber reports
+│   │   ├── Run*.java       // 22 JUnit5 runners (by @tag)
+│   │   └── 17 domains/     // 264 .feature files
+│   └── logback-test.xml    // logging config
+├── templates/              // GitLab CI · 23 sequential jobs
+│   ├── base_pipeline.yml   // stages · secrets · job templates
+│   └── test-env-*.yml      // TU / ABN / E2E triggers
+├── scripts/                // xray-post · xray-attachment · merge-xml
+└── pom.xml                 // Karate 1.4.1 · JUnit5 · multi-DB drivers
+
+playwright-tests-automation/  // Playwright UI · TypeScript
+├── pages/         // 22 page objects (BasePage)
+├── locators/      // 17 locator classes (selector-only)
+├── clients/       // openapi-fetch client factory
+├── generated/     // 12 OpenAPI → TS type files
+├── config/        // 7 environments · 44 services
+├── helpers/       // fixtures · DB · SQL · multi-user
+├── sql/           // 18 reusable SQL scripts
+├── data/          // 63 fixtures (xls/xlsx/json/pdf)
+├── tests/         // 22 areas · 152 specs · 254 tests
+│   ├── auth.setup.ts  // KeyCloak auth project
+│   └── …/             // specs by business area
+├── templates/     // CI + secret management
+└── playwright.config.ts`}
                 </pre>
-                <p className="text-[10px] text-gray-500 italic mt-2">Generalized layout — actual project follows the same Karate (API) + Playwright (UI) split, sanitized.</p>
+                <p className="text-[10px] text-gray-500 italic mt-2">Real two-repo split (Karate API + Playwright UI); structure condensed, internal names sanitized.</p>
               </div>
             </div>
 
