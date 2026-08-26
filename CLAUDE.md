@@ -63,7 +63,7 @@ All content lives in `src/app/page.tsx` as plain arrays/objects above the JSX �
 - **`qaFilterOptions`** — technology filter chips. A chip only matches if the exact string appears in a project's `technologies[]` or as a substring of a `tooling[]` entry. Adding a chip with no match silently yields an empty grid.
 - **`skills`** — category → skill list, rendered as cards.
 
-**Status vocabulary** drives badge styling: `'Ongoing'` renders amber with a pulsing dot; anything else (`'Completed'`, `'Done'`) renders muted gray. Same rule for `subProjects`. Use `'Ongoing'` only for genuinely active work.
+**Status vocabulary is exactly two values: `'Ongoing'` and `'Completed'`.** Do not invent synonyms — `'Ongoing'` renders amber with a pulsing dot, anything else falls through to a muted gray badge, so a stray `'Done'` or `'Shipped'` looks identical to `'Completed'` and just fragments the copy. Same rule for `subProjects`. Use `'Ongoing'` only for genuinely active work.
 
 ## Gotchas
 

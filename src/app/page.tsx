@@ -250,7 +250,7 @@ export default function Portfolio() {
     "Maintained direct communication with developers resolving 15+ critical defects during launches",
     "Achieved ±0.001mm manufacturing accuracy through boundary testing and geometric validation"
   ],
-  status: "Done",
+  status: "Completed",
   impact: {
     businessValue: "100% on-time deliverables | Zero manufacturing defects | 40% faster defect resolution | 99% defect clarity",
     scale: "Medical device manufacturing | CAD/CAM precision systems | Cross-functional engineering teams",
@@ -289,7 +289,7 @@ export default function Portfolio() {
     "Accelerated campaign deployment by 50% through custom automation plugins",
     "Maintained 100% quality standards preventing costly client project failures"
   ],
-  status: "Done",
+  status: "Completed",
   impact: {
     businessValue: "35% higher client conversion | 80% reduction in manual processes | €500K+ revenue growth enabled",
     scale: "10+ satisfied clients | 99.9% uptime achieved",
