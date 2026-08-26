@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronDownIcon, EnvelopeIcon, MapPinIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
-import { BriefcaseIcon, CodeBracketIcon, AcademicCapIcon } from '@heroicons/react/24/solid'
+import { MapPinIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
+import { BriefcaseIcon } from '@heroicons/react/24/solid'
 import { QA_CAREER_START, PLAYWRIGHT_START, KARATE_START, getYearsSince } from '@/lib/career'
 
 type SubProject = {
@@ -63,93 +63,6 @@ export default function Portfolio() {
 
 
   const projects = [
-   {
-  title: "TOKERO QA Automation Platform",
-  description: "Sole architect and maintainer of the QA stack at TOKERO (European crypto exchange): a Playwright functional framework in production since 2025, plus an NBomber performance suite and a custom Blazor reporting platform — both shipped to production in 2026. Owned end-to-end since July 2025.",
-  technologies: [
-    "Playwright",
-    ".NET 10",
-    "C#",
-    "NUnit",
-    "NBomber",
-    "Blazor",
-    "MudBlazor",
-    "ApexCharts",
-    "PostgreSQL",
-    "Supabase",
-    "EF Core",
-    "Azure Key Vault",
-    "GitLab CI/CD",
-    "Azure DevOps"
-  ],
-  tooling: ["Claude Code", "Playwright MCP"],
-  highlights: [
-    "Sole owner of 3 production QA systems serving the entire engineering org",
-    "Designed and built `pulse` from zero: PostgreSQL schema, EF Core data layer, Blazor Server UI, NUnit XML parser, candlestick + trend analytics on ApexCharts",
-    "Authored 9+ custom Claude Code skills now used by the QA team for standardized test and Page Object generation",
-    "Built the SignalR/Blazor independent-circuit perf scenario — first real /_blazor blazorpack handshake load test in the codebase, closing a gap NBomber didn't cover out of the box",
-    "Migrated `pulse` to dual-provider data layer (SQLite local + Postgres prod) without schema divergence",
-    "Source-generated Razor @page route constants via Tokero.SourceGenerator — eliminates a class of stale-URL test bugs"
-  ],
-  status: "Ongoing",
-  impact: {
-    businessValue: "77 Page Objects · 49 test classes · 11 perf scenarios · 30+ perf profiles",
-    scale: "Sole owner of 3 production QA systems · functional + performance + reporting",
-    timeline: "July 2025 - Present"
-  },
-  clientType: "European cryptocurrency exchange",
-  role: "Senior QA Automation Engineer & Test Architect",
-  keyAchievements: [
-    "Sole architect of qaatpw framework: HybridFixture + TestBase, source generator, 77 POs, 49 test classes",
-    "Built `pulse` end-to-end from schema to UI — replaced the prior reporting flow",
-    "Authored and maintains the team's AI-augmented test authoring workflow (Claude Code skills + Playwright MCP)",
-    "Built the first real Blazor SignalR independent-circuit perf scenario in the codebase"
-  ],
-  subProjects: [
-    {
-      name: "Functional Automation Framework (qaatpw)",
-      repo: "qaatpw",
-      stack: ["Playwright", "C#", ".NET 10", "NUnit", "Azure Key Vault", "GitLab CI/CD"],
-      metrics: "77 Page Objects · 49 test classes",
-      timeline: "2025 - Present",
-      status: "Ongoing",
-      highlights: [
-        "Sole architect: HybridFixture + TestBase, lazy-loaded page objects, fixture lifecycle",
-        "Routes source-generated from Blazor @page directives via Tokero.SourceGenerator",
-        "Authored team skills: /generate-page, /generate-test, /verify-test, /debug-failure",
-        "Validates flows interactively via Playwright MCP before commit"
-      ]
-    },
-    {
-      name: "Performance Testing Suite (perf)",
-      repo: "perf",
-      stack: ["NBomber", ".NET 10", "Grafana", "Prometheus", "Supabase Postgres"],
-      metrics: "11 scenarios · 30+ profiles · CPU-burn + SignalR + saturation curve",
-      timeline: "2026 - Present",
-      status: "Ongoing",
-      highlights: [
-        "Built Blazor SignalR independent-circuit scenario with real /_blazor blazorpack handshake",
-        "Added Saturation Curve analysis on RunDedicated (1/3/5/10/20 frames + knee detection)",
-        "Built Endpoint Cost Table on Diagnostics page — per-step rows + aggregate pod CPU/Mem footer",
-        "Owns the correctness-pass discipline: staging guardrail, ErrorClass enum, auth semaphore, loud KYC init"
-      ]
-    },
-    {
-      name: "Reporting Platform (pulse)",
-      repo: "pulse",
-      stack: ["Blazor Server", "MudBlazor", "ApexCharts", "PostgreSQL (Supabase)", "EF Core"],
-      metrics: "Flaky detection · Duration trends · Candlestick analysis",
-      timeline: "2026 - Present",
-      status: "Ongoing",
-      highlights: [
-        "Designed and built from zero: PostgreSQL schema, EF Core data layer, Blazor Server UI, parsing pipeline",
-        "Three-zone Duration page: standalone card, inline expanded row, All Tests table",
-        "ApexCharts candlestick + trend with 10/20/30/All run-count toggle and 10% regression threshold",
-        "Extending the reporting layer toward DORA metrics (cross-team initiative)"
-      ]
-    }
-  ]
-},
     {
  title: "Deutsche Bahn - SAP ERP Integrated Railway Management System QA Automation Framework",
   description: "Prevented €2M+ in potential system failures through proactive defect detection for Europe's largest transportation network. Reduced testing cycles by 40% while maintaining zero-tolerance safety standards for 2+ billion annual passengers. Led digital transformation of critical railway infrastructure supporting Germany's €40B transportation modernization program.",
@@ -185,7 +98,7 @@ export default function Portfolio() {
  impact: {
    businessValue: "€2M+ prevented losses | 40% faster testing cycles | 25% fewer production defects | Zero safety incidents",
    scale: "2+ billion passengers annually | 340,000+ employees | 33,000+ km rail network | 24/7 operations",
-   timeline: "January 2023 - Present (Current role)",
+   timeline: "January 2023 - October 2026 (current engagement)",
    efficiency: "50% faster issue resolution | 35% faster test execution | 55% automated coverage"
  },
   clientType: "Germany's National Railway Operator & Europe's Largest Rail Network",
@@ -202,7 +115,7 @@ export default function Portfolio() {
       repo: "act-backend-tests",
       stack: ["Karate", "Java 17", "JUnit 5", "Maven", "Spring JDBC", "PostgreSQL / MySQL / Oracle", "Kubernetes", "GitLab CI/CD", "Jira/XRay"],
       metrics: "264 feature files · 264 scenarios · 23 API services · 17 service domains · 134 SQL scripts",
-      timeline: "2023 - Present",
+      timeline: "2023 - Oct 2026",
       status: "Ongoing",
       highlights: [
         "23-job sequential regression pipeline across 17 microservice domains with Cucumber report aggregation and GitLab Pages deploy",
@@ -216,13 +129,100 @@ export default function Portfolio() {
       repo: "playwright-tests-automation",
       stack: ["Playwright", "TypeScript", "openapi-fetch", "openapi-typescript", "PostgreSQL", "GitLab CI/CD", "Jira/XRay"],
       metrics: "22 page objects · 152 spec files · 254 test cases · 44 API services · 22 app areas",
-      timeline: "2023 - Present",
+      timeline: "2023 - Oct 2026",
       status: "Ongoing",
       highlights: [
         "Custom fixture layer injects typed API clients (openapi-fetch), DB connections, and page objects — zero boilerplate in test files",
         "Locator/Page separation pattern: 17 locator classes composed into 22 page objects, keeping selectors stable independent of page logic",
         "Multi-user test infrastructure via UserManager / UserSession fixtures for concurrent-session scenarios",
         "OpenAPI-generated TypeScript types for 44 microservices with an environment-aware client factory across 7 deployment targets"
+      ]
+    }
+  ]
+},
+   {
+  title: "TOKERO QA Automation Platform",
+  description: "Sole architect and maintainer of the QA stack at TOKERO (European crypto exchange): a Playwright functional framework in production since 2025, plus an NBomber performance suite and a custom Blazor reporting platform — both shipped to production in 2026. Owned end-to-end from July 2025 until the engagement concluded in August 2026, with all three systems handed over running in production.",
+  technologies: [
+    "Playwright",
+    ".NET 10",
+    "C#",
+    "NUnit",
+    "NBomber",
+    "Blazor",
+    "MudBlazor",
+    "ApexCharts",
+    "PostgreSQL",
+    "Supabase",
+    "EF Core",
+    "Azure Key Vault",
+    "GitLab CI/CD",
+    "Azure DevOps"
+  ],
+  tooling: ["Claude Code", "Playwright MCP"],
+  highlights: [
+    "Sole owner of 3 production QA systems serving the entire engineering org",
+    "Designed and built `pulse` from zero: PostgreSQL schema, EF Core data layer, Blazor Server UI, NUnit XML parser, candlestick + trend analytics on ApexCharts",
+    "Authored 9+ custom Claude Code skills now used by the QA team for standardized test and Page Object generation",
+    "Built the SignalR/Blazor independent-circuit perf scenario — first real /_blazor blazorpack handshake load test in the codebase, closing a gap NBomber didn't cover out of the box",
+    "Migrated `pulse` to dual-provider data layer (SQLite local + Postgres prod) without schema divergence",
+    "Source-generated Razor @page route constants via Tokero.SourceGenerator — eliminates a class of stale-URL test bugs"
+  ],
+  status: "Completed",
+  impact: {
+    businessValue: "77 Page Objects · 49 test classes · 11 perf scenarios · 30+ perf profiles",
+    scale: "Sole owner of 3 production QA systems · functional + performance + reporting",
+    timeline: "July 2025 - August 2026"
+  },
+  clientType: "European cryptocurrency exchange",
+  role: "Senior QA Automation Engineer & Test Architect",
+  keyAchievements: [
+    "Sole architect of qaatpw framework: HybridFixture + TestBase, source generator, 77 POs, 49 test classes",
+    "Built `pulse` end-to-end from schema to UI — replaced the prior reporting flow",
+    "Authored the team's AI-augmented test authoring workflow (Claude Code skills + Playwright MCP), still in use after handover",
+    "Built the first real Blazor SignalR independent-circuit perf scenario in the codebase"
+  ],
+  subProjects: [
+    {
+      name: "Functional Automation Framework (qaatpw)",
+      repo: "qaatpw",
+      stack: ["Playwright", "C#", ".NET 10", "NUnit", "Azure Key Vault", "GitLab CI/CD"],
+      metrics: "77 Page Objects · 49 test classes",
+      timeline: "2025 - Aug 2026",
+      status: "Completed",
+      highlights: [
+        "Sole architect: HybridFixture + TestBase, lazy-loaded page objects, fixture lifecycle",
+        "Routes source-generated from Blazor @page directives via Tokero.SourceGenerator",
+        "Authored team skills: /generate-page, /generate-test, /verify-test, /debug-failure",
+        "Validated flows interactively via Playwright MCP before commit"
+      ]
+    },
+    {
+      name: "Performance Testing Suite (perf)",
+      repo: "perf",
+      stack: ["NBomber", ".NET 10", "Grafana", "Prometheus", "Supabase Postgres"],
+      metrics: "11 scenarios · 30+ profiles · CPU-burn + SignalR + saturation curve",
+      timeline: "2026 - Aug 2026",
+      status: "Completed",
+      highlights: [
+        "Built Blazor SignalR independent-circuit scenario with real /_blazor blazorpack handshake",
+        "Added Saturation Curve analysis on RunDedicated (1/3/5/10/20 frames + knee detection)",
+        "Built Endpoint Cost Table on Diagnostics page — per-step rows + aggregate pod CPU/Mem footer",
+        "Owned the correctness-pass discipline: staging guardrail, ErrorClass enum, auth semaphore, loud KYC init"
+      ]
+    },
+    {
+      name: "Reporting Platform (pulse)",
+      repo: "pulse",
+      stack: ["Blazor Server", "MudBlazor", "ApexCharts", "PostgreSQL (Supabase)", "EF Core"],
+      metrics: "Flaky detection · Duration trends · Candlestick analysis",
+      timeline: "2026 - Aug 2026",
+      status: "Completed",
+      highlights: [
+        "Designed and built from zero: PostgreSQL schema, EF Core data layer, Blazor Server UI, parsing pipeline",
+        "Three-zone Duration page: standalone card, inline expanded row, All Tests table",
+        "ApexCharts candlestick + trend with 10/20/30/All run-count toggle and 10% regression threshold",
+        "Laid the groundwork for extending the reporting layer toward DORA metrics (cross-team initiative)"
       ]
     }
   ]
@@ -454,6 +454,16 @@ export default function Portfolio() {
             </p>
           </div>
 
+          <div className="flex justify-center mb-10">
+            <span className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-200 text-sm font-medium backdrop-blur-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75 animate-ping"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+              </span>
+              Available for new engagements from November 2026
+            </span>
+          </div>
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <div className="relative group">
               <a
@@ -520,7 +530,7 @@ export default function Portfolio() {
             <div className="space-y-6">
               <p className="text-gray-300 text-lg leading-relaxed">
                 I believe quality isn&apos;t just about finding bugs—it&apos;s about building confidence in every release.
-                I currently run two concurrent senior engagements: sole architect of the QA stack at <b className="text-amber-300">TOKERO</b> (Playwright&nbsp;.NET, NBomber, custom Blazor reporting) and automation lead for <b className="text-amber-300">Deutsche Bahn&apos;s SAP ERP Integrated Railway Management System</b> at Heaven Solutions (Karate API, Playwright UI). I thrive where technical precision meets collaborative problem-solving.
+                I&apos;m currently automation lead for <b className="text-amber-300">Deutsche Bahn&apos;s SAP ERP Integrated Railway Management System</b> at Heaven Solutions (Karate API, Playwright UI) — an engagement that concludes in October 2026. Through August 2026 I ran that in parallel with a second senior engagement as sole architect of the QA stack at <b className="text-amber-300">TOKERO</b> (Playwright&nbsp;.NET, NBomber, custom Blazor reporting), where I handed over three production QA systems. I thrive where technical precision meets collaborative problem-solving.
               </p>
 
               <p className="text-gray-300 text-lg leading-relaxed">
@@ -603,11 +613,11 @@ export default function Portfolio() {
               </div>
 
               <div className="border-t border-white/10 pt-6">
-                <h3 className="text-xl font-bold text-white mb-4">Let's Connect If You...</h3>
+                <h3 className="text-xl font-bold text-white mb-4">Let&apos;s Connect If You...</h3>
                 <div className="space-y-2">
                   <p className="text-gray-300">• Want to discuss API testing strategies vs. UI automation trade-offs</p>
-                  <p className="text-gray-300">• Need a partner to transform "testing bottlenecks" into "quality accelerators"</p>
-                  <p className="text-gray-300">• Believe teams deliver better software when quality is everyone's responsibility</p>
+                  <p className="text-gray-300">• Need a partner to transform &quot;testing bottlenecks&quot; into &quot;quality accelerators&quot;</p>
+                  <p className="text-gray-300">• Believe teams deliver better software when quality is everyone&apos;s responsibility</p>
                 </div>
                 <p className="text-amber-300 font-medium mt-4 italic">
                   Open to collaborations, mentorship, and conversations that strengthen software quality practices.
@@ -712,12 +722,12 @@ export default function Portfolio() {
       <section className="py-20 px-6 bg-gradient-to-r from-black/40 to-amber-900/20">
         <div className="max-w-4xl mx-auto text-center">
           <div className="relative">
-            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-6xl text-amber-400/20">"</div>
+            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-6xl text-amber-400/20">&quot;</div>
             <blockquote className="text-2xl md:text-3xl font-light text-white mb-6 leading-relaxed">
-              Automation isn't about replacing humans—it's about giving us time to be more human.
+              Automation isn&apos;t about replacing humans—it&apos;s about giving us time to be more human.
             </blockquote>
             <cite className="text-lg text-gray-400">— Personal Philosophy</cite>
-            <div className="absolute -bottom-8 right-1/2 transform translate-x-1/2 text-6xl text-amber-400/20 rotate-180">"</div>
+            <div className="absolute -bottom-8 right-1/2 transform translate-x-1/2 text-6xl text-amber-400/20 rotate-180">&quot;</div>
           </div>
           <div className="mt-12 flex justify-center">
             <div className="w-24 h-1 bg-gradient-to-r from-amber-400 to-yellow-600 rounded-full"></div>
@@ -875,11 +885,9 @@ export default function Portfolio() {
 
           {/* Compact Project Grid */}
           <div className="grid md:grid-cols-2 gap-6">
-            {filteredProjects.map((project, filteredIndex) => {
+            {filteredProjects.map((project) => {
               const originalIndex = projects.findIndex(p => p.title === project.title)
-              // Extract key impact number from business value
-              const impactMatch = project.impact.businessValue.match(/[€\$][\d.]+[MK+]*|[\d]+%|[\d.]+[MBK+]*/)
-              const keyImpact = impactMatch ? impactMatch[0] : project.impact.timeline || 'Production'
+              const isLiveStatus = project.status === 'Ongoing'
 
               return (
                 <div
@@ -921,12 +929,12 @@ export default function Portfolio() {
                     <div className="flex items-center space-x-2">
                       <div className="relative">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium inline-flex items-center space-x-1 ${
-                          project.status === 'Production'
+                          isLiveStatus
                             ? 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 border border-amber-500/30'
-                            : 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 border border-amber-500/30'
+                            : 'bg-white/5 text-gray-400 border border-white/15'
                         }`}>
                           <div className={`w-2 h-2 rounded-full ${
-                            project.status === 'Production' ? 'bg-amber-400 animate-pulse' : 'bg-amber-400 animate-pulse'
+                            isLiveStatus ? 'bg-amber-400 animate-pulse' : 'bg-gray-500'
                           }`}></div>
                           <span>{project.status}</span>
                         </span>
@@ -1046,7 +1054,11 @@ export default function Portfolio() {
                                     <div className="w-1.5 h-1.5 bg-amber-400 rounded-full flex-shrink-0"></div>
                                     <h5 className="text-white font-semibold text-sm leading-tight">{sub.name}</h5>
                                   </div>
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30 flex-shrink-0">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 ${
+                                    sub.status === 'Ongoing'
+                                      ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                                      : 'bg-white/5 text-gray-400 border border-white/15'
+                                  }`}>
                                     {sub.status}
                                   </span>
                                 </div>
@@ -1268,7 +1280,7 @@ export default function Portfolio() {
                 <div className="w-10 h-10 bg-gradient-to-r from-amber-600 to-yellow-600 rounded-lg flex items-center justify-center mr-3">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                 </div>
-                <h3 className="text-lg font-bold text-white">Railway QA Stack (separate engagement)</h3>
+                <h3 className="text-lg font-bold text-white">Railway QA Stack (current engagement)</h3>
               </div>
               <div className="space-y-2 text-sm text-gray-300">
                 <p><span className="text-amber-400 font-semibold">Karate API regression suite</span> (Java 17) — 264 feature files across 17 microservice domains (billing, train-path, master-data), exercising 23 services.</p>
@@ -1642,10 +1654,14 @@ playwright-tests-automation/  // Playwright UI · TypeScript
       {/* Contact Section */}
       <section id="contact" className="py-20 px-6 bg-black/20">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-4xl font-bold text-white mb-6 text-center">Let's Work Together</h2>
+          <h2 className="text-4xl font-bold text-white mb-6 text-center">Let&apos;s Work Together</h2>
           <p className="text-xl text-gray-300 mb-12 max-w-2xl mx-auto text-center">
             Interested in discussing QA automation opportunities or have questions about testing strategies?
-            I'd love to hear from you.
+            I&apos;d love to hear from you.
+          </p>
+
+          <p className="text-amber-300 text-center max-w-2xl mx-auto mb-12 -mt-8 font-medium">
+            Currently wrapping up my engagement with Deutsche Bahn (through October 2026) — available for new roles and contracts from November 2026.
           </p>
 
           <div className="max-w-lg mx-auto">
