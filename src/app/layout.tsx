@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { QA_CAREER_START, getYearsSince } from "@/lib/career";
 
@@ -18,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://aserban.ro"),
   title: "Șerban Andrei - Senior QA Automation Engineer & Test Architect",
-  description: `Senior QA Automation Engineer & Test Architect. ${yearsInTech}+ years in tech with concurrent senior engagements at TOKERO (Playwright .NET, NBomber, Blazor reporting) and Heaven Solutions / Deutsche Bahn (Karate API, Playwright UI). AI-augmented QA practitioner.`,
+  description: `Senior QA Automation Engineer & Test Architect. ${yearsInTech}+ years in tech. Currently automation lead for Deutsche Bahn's SAP ERP railway system at Heaven Solutions (Karate API, Playwright UI) through October 2026, after concluding a senior engagement as sole QA architect at TOKERO (Playwright .NET, NBomber, Blazor reporting) in August 2026. AI-augmented QA practitioner. Available from November 2026.`,
   keywords: [
     "QA Automation Engineer",
     "Test Architect",
@@ -54,7 +55,7 @@ export const metadata: Metadata = {
     url: "https://aserban.ro",
     siteName: "Șerban Andrei - QA Portfolio",
     title: "Șerban Andrei - Senior QA Automation Engineer & Test Architect",
-    description: "Senior QA Automation Engineer & Test Architect with concurrent senior engagements at TOKERO and Heaven Solutions / Deutsche Bahn. AI-augmented QA practitioner.",
+    description: "Senior QA Automation Engineer & Test Architect. Automation lead for Deutsche Bahn at Heaven Solutions through October 2026, after a senior engagement as sole QA architect at TOKERO. AI-augmented QA practitioner — available from November 2026.",
     images: [
       {
         url: "/og-image.jpg",
@@ -67,7 +68,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Șerban Andrei - Senior QA Automation Engineer & Test Architect",
-    description: "Senior QA Automation Engineer with concurrent senior engagements. AI-augmented QA practitioner.",
+    description: "Senior QA Automation Engineer & Test Architect. AI-augmented QA practitioner — available for new engagements from November 2026.",
     images: ["/og-image.jpg"]
   }
 };
@@ -88,7 +89,7 @@ const personJsonLd = {
   url: "https://aserban.ro",
   image: "https://aserban.ro/og-image.jpg",
   description:
-    "Senior QA Automation Engineer & Test Architect with concurrent senior engagements at TOKERO and Heaven Solutions / Deutsche Bahn. AI-augmented QA practitioner using Claude Code, MCP integrations, and spec-driven automation.",
+    "Senior QA Automation Engineer & Test Architect. Automation lead for Deutsche Bahn's SAP ERP Integrated Railway Management System at Heaven Solutions through October 2026, after concluding a senior engagement as sole architect of the QA stack at TOKERO in August 2026. AI-augmented QA practitioner using Claude Code, MCP integrations, and spec-driven automation. Available for new engagements from November 2026.",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Iași",
@@ -102,11 +103,6 @@ const personJsonLd = {
     "https://www.linkedin.com/in/șerban-andrei-5a14a51a5"
   ],
   worksFor: [
-    {
-      "@type": "Organization",
-      name: "TOKERO Crypto Exchange",
-      url: "https://tokero.com"
-    },
     {
       "@type": "Organization",
       name: "Heaven Solutions",
@@ -157,11 +153,18 @@ const personJsonLd = {
       }
     }
   ],
-  alumniOf: {
-    "@type": "CollegeOrUniversity",
-    name: '"Gheorghe Asachi" Technical University of Iași',
-    url: "https://ieeia.tuiasi.ro"
-  },
+  alumniOf: [
+    {
+      "@type": "CollegeOrUniversity",
+      name: '"Gheorghe Asachi" Technical University of Iași',
+      url: "https://ieeia.tuiasi.ro"
+    },
+    {
+      "@type": "Organization",
+      name: "TOKERO Crypto Exchange",
+      url: "https://tokero.com"
+    }
+  ],
   knowsLanguage: [
     { "@type": "Language", name: "Romanian", alternateName: "ro" },
     { "@type": "Language", name: "English", alternateName: "en" },
@@ -199,6 +202,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
         />
         {children}
+        <Analytics />
       </body>
     </html>
   );
