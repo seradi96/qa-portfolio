@@ -737,6 +737,14 @@ git commit -m "feat(testimonials): input sanitisation with grapheme caps and Lin
 
 ### Task 3: Server crypto — sign and verify the two token families
 
+> **Superseded in places — read this first.** The code listings below are the ORIGINAL brief and
+> still show `MAX_MODERATION_URL_CHARS = 1900`, two URL-budget assertions instead of three, and an
+> assertion message blaming Outlook. All three were corrected during implementation: the budget is
+> **2400**, there are **three** budget assertions (English, Romanian absolute maximum, incompressible
+> still overflowing), and the rationale is the Gmail-only recipient, not Outlook. The shipped source
+> in `src/lib/token.ts` and `scripts/token-roundtrip.mjs` is authoritative; see spec §7.1 and the
+> SDD ledger for why. Do not re-apply the listings below verbatim.
+
 **Files:**
 - Create: `src/lib/token.ts`
 - Modify: `tsconfig.json:16`

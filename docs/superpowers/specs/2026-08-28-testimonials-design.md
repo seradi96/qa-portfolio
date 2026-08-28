@@ -246,12 +246,21 @@ Same fields, same encoding, only the codec differs:
 optimistic by roughly 4x — they assumed repetitive text, which gzip crushes; distinct prose is
 the honest case):
 
-| Full moderation URL, every answer field at its cap | chars | spare against 1900 |
+**Shipped figures, measured against the shipped budget of 2400** — these are what
+`npm run check:tokens` prints on every run, so they cannot go stale silently:
+
+| Full moderation URL, every answer field at its cap | chars | against the 2400 budget |
 |---|---|---|
-| Distinct English prose | 1663 | 237 |
-| Distinct Romanian prose, realistic identity | 1848 | 52 |
-| **Absolute legal maximum: Romanian, identity at 80, slug at 60, `anythingElse` 700** | **~2050** | **~350 (budget 2400)** |
-| Pathological incompressible random | 2504 | over by 604 — the 413 exists for this |
+| Distinct English prose | 1663 | 737 spare |
+| **Distinct high-entropy Romanian, absolute legal maximum** — every answer at cap, identity fields at 80, slug at 60 | **1991** | **409 spare** |
+| Pathological incompressible random | ~2510 | **~110 over** — the 413 exists for this, and still fires |
+
+The Romanian row is the one that matters: it is the tightest realistic case, and it is the assertion
+that must be kept honest if anyone ever raises a cap. Two independent alternate Romanian fixtures at
+the same caps measured 1739 and 1835, so genuinely different texts swing about 150–250 characters —
+the 409-char cushion is roughly two to four times that. The incompressible row's ~110 is thin in
+absolute terms but sits about fifteen times above its own run-to-run variance of ~7 characters,
+because random bytes give gzip nothing to exploit differently between runs.
 
 **Then the budget itself turned out to be the mistake.** Lowering `anythingElse` to 550 bought only
 18 characters of margin against a high-entropy Romanian fixture — a coin flip, since gzip varies by
