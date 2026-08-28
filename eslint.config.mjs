@@ -4,7 +4,7 @@ import nextTypeScript from "eslint-config-next/typescript";
 // Next 16 ships eslint-config-next as native flat config — no FlatCompat/eslintrc needed.
 const eslintConfig = [
   {
-    ignores: [".next/**", "out/**", "build/**", "next-env.d.ts", "build_cv.js"],
+    ignores: [".next/**", "out/**", "build/**", "next-env.d.ts", "build_cv.js", "scripts/**"],
   },
   ...nextCoreWebVitals,
   ...nextTypeScript,

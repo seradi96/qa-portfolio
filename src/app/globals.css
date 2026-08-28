@@ -16,3 +16,23 @@ body {
 pre {
   max-width: 100%;
 }
+
+@layer components {
+  .card-surface {
+    @apply relative rounded-2xl border border-white/[0.08]
+           bg-gradient-to-b from-white/[0.06] to-white/[0.03]
+           transition-all duration-200 ease-out;
+  }
+
+  .card-surface-interactive {
+    @apply hover:border-amber-400/30 hover:from-white/[0.08] hover:to-white/[0.04]
+           hover:shadow-xl hover:shadow-amber-500/10;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-surface,
+  .card-surface-interactive {
+    transition: none;
+  }
+}
