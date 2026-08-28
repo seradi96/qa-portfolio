@@ -234,6 +234,12 @@ hard-fails the build on `node:crypto`.
    is idempotent.
 7. Build the moderation payload, `gzipSync(level 9)`, sign under `m1` with `MOD_SECRET`, assemble the
    URL. **Assert `url.length <= 2400`**, else 413 with "your answers are about N characters too long".
+   The trim figure must be computed with a multiplier **above** 1, not below it: the payload is
+   gzipped before base64url, so removing one source character removes less than one compressed byte.
+   Measured over 60 randomized incompressible fixtures, a `3/4` multiplier succeeded 0/60 while 1.1
+   and above succeeded 60/60; the shipped value is 1.25. Anyone changing a field cap must re-measure
+   rather than reason about it. Note this only ever fires for pathological input — real prose
+   measures 1663 (English) to 1991 (Romanian) against the 2400 budget.
 8. Send the notification email with one `fetch` to Resend. **The send is the commit point** — a
    non-2xx returns 503 and the form keeps every typed answer. Because nothing is stored, there is no
    half-succeeded write to reconcile: either the owner has the submission or the submitter still does.

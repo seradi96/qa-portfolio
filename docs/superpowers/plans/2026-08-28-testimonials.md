@@ -3325,6 +3325,15 @@ git commit -m "feat(testimonials): publish approved records as a branch and pull
 
 ### Task 10: Submission route handler (`POST /api/testimonials/submit`)
 
+> **Superseded in one place — read this first.** The listing below computes the 413 trim advice as
+> `Math.ceil((overUrlChars * 3) / 4)` and justifies it with "one compressed byte never stands for
+> less than one source character". **That reasoning is inverted and the formula always understates.**
+> The payload is gzipped before base64url, so removing one source character shrinks the compressed
+> payload by *less* than one byte — the multiplier must be above 1, not below it. Measured on the
+> real implementation over 60 randomized incompressible fixtures: `0.75` succeeded **0/60**, `1.0`
+> succeeded 34/60, `1.1` and above succeeded 60/60. The shipped value is **1.25**, chosen for margin.
+> `src/app/api/testimonials/submit/route.ts` is authoritative. Do not re-apply the listing's formula.
+
 **Files:**
 - Create: `src/app/api/testimonials/submit/route.ts`
 
