@@ -158,10 +158,17 @@ function sameAsPrefill(draft: Draft, fields: InviteFields): boolean {
 
 function readErrorBody(body: unknown): { field?: string; message?: string } {
   if (typeof body !== 'object' || body === null) return {}
-  const r = body as { field?: unknown; message?: unknown }
+  const r = body as { field?: unknown; message?: unknown; error?: unknown }
+  // /api/testimonials/submit is internally consistent, not uniform: 422 sends
+  // { field, message } (route.ts's FieldError branch), but every other rejection — including
+  // the 413s, which are the ones that carry a computed "trim by N characters" figure — sends
+  // { error }. Reading `message` first and falling back to `error` is what makes that number
+  // actually reach the submitter instead of always falling through to the generic 413 copy below.
+  const message =
+    typeof r.message === 'string' ? r.message : typeof r.error === 'string' ? r.error : undefined
   return {
     field: typeof r.field === 'string' ? r.field : undefined,
-    message: typeof r.message === 'string' ? r.message : undefined,
+    message,
   }
 }
 
@@ -208,6 +215,30 @@ function SoftCounter({ value, cap }: { value: string; cap: number }) {
   )
 }
 
+/**
+ * Reads a previously-saved draft for this invite, if any. Called exactly once, from a lazy
+ * useState initializer in the component below — TestimonialForm only ever mounts client-side
+ * (page.tsx never constructs it until the gate has already resolved to 'ready', itself a
+ * client-only transition happening inside a useEffect), so there is no SSR pass to reconcile
+ * and no hydration-mismatch risk in reading localStorage here. That is what makes a plain lazy
+ * initializer the right tool, unlike the gate in page.tsx, which does render on the server (as
+ * the static loading shell) and genuinely needs the effect-deferred read.
+ */
+function loadStoredDraft(fields: InviteFields, storageKey: string): { draft: Draft; restored: boolean } {
+  try {
+    const stored = window.localStorage.getItem(storageKey)
+    if (stored) {
+      const merged = mergeDraft(initialDraft(fields), JSON.parse(stored))
+      if (merged && !sameAsPrefill(merged, fields)) {
+        return { draft: merged, restored: true }
+      }
+    }
+  } catch {
+    // Private-mode Safari throws on localStorage access. Autosave is a convenience; never fatal.
+  }
+  return { draft: initialDraft(fields), restored: false }
+}
+
 export default function TestimonialForm({
   token,
   fields,
@@ -217,43 +248,33 @@ export default function TestimonialForm({
   fields: InviteFields
   storageKey: string
 }) {
-  const [draft, setDraft] = useState<Draft>(() => initialDraft(fields))
+  // Computed via lazy useState initializers, synchronously, during the first render — see
+  // loadStoredDraft's comment for why that is safe here. Two separate calls (one per state)
+  // rather than a single memoized read: a ref read during render trips react-hooks/refs
+  // ("accessing ref.current during render can cause your component not to update as expected"),
+  // even for a ref that is only ever assigned once before the first paint. loadStoredDraft is
+  // pure and cheap — one small localStorage read plus a JSON.parse, done at most twice, only on
+  // mount, never again — so paying that twice is a better trade than fighting the linter over a
+  // pattern it no longer allows.
+  const [draft, setDraft] = useState<Draft>(() => loadStoredDraft(fields, storageKey).draft)
   const [consent, setConsent] = useState(false)
-  const [restored, setRestored] = useState(false)
+  // Consent is deliberately NOT restored: ticking the box is the act of consenting, and a box
+  // that arrives pre-ticked from last week is not one.
+  const [restored, setRestored] = useState<boolean>(() => loadStoredDraft(fields, storageKey).restored)
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
-  const readyRef = useRef(false)
-
-  // Restore a saved draft once, on mount. Consent is deliberately NOT restored: ticking the box
-  // is the act of consenting, and a box that arrives pre-ticked from last week is not one.
-  //
-  // The body runs inside a microtask rather than directly in the effect: the setState calls
-  // below only fire when a draft was actually found in storage, so calling them synchronously
-  // in the effect trips react-hooks/set-state-in-effect (this is a genuine "sync with an
-  // external, browser-only source" case, not a derivable-during-render one — localStorage does
-  // not exist on the server, which is why this has to live in an effect at all). Deferring by a
-  // microtask keeps the restore effectively immediate (it still runs before the next paint) while
-  // satisfying the rule.
-  useEffect(() => {
-    queueMicrotask(() => {
-      try {
-        const stored = window.localStorage.getItem(storageKey)
-        if (stored) {
-          const merged = mergeDraft(initialDraft(fields), JSON.parse(stored))
-          if (merged && !sameAsPrefill(merged, fields)) {
-            setDraft(merged)
-            setRestored(true)
-          }
-        }
-      } catch {
-        // Private-mode Safari throws on localStorage access. Autosave is a convenience; never fatal.
-      }
-      readyRef.current = true
-    })
-  }, [fields, storageKey])
+  // Skips the autosave effect's very first invocation (mount), so opening the page and never
+  // typing anything never schedules a write — restored or not, the draft on mount is already
+  // final (see loadStoredDraft above), so there is nothing to persist yet. A ref, not state:
+  // mutating it inside the effect is fine, only *setState* directly in an effect trips the lint
+  // rule below.
+  const mountedRef = useRef(false)
 
   // Autosave, 400 ms debounced.
   useEffect(() => {
-    if (!readyRef.current) return
+    if (!mountedRef.current) {
+      mountedRef.current = true
+      return
+    }
     const id = window.setTimeout(() => {
       try {
         window.localStorage.setItem(storageKey, JSON.stringify(draft))

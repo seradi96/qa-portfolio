@@ -36,12 +36,28 @@ function MailLink() {
 export default function InvitePage() {
   const [gate, setGate] = useState<Gate>({ kind: 'loading' })
 
-  // The body runs inside a microtask rather than directly in the effect: window.location.hash
-  // only exists client-side, so this has to live in an effect (a lazy useState initializer would
-  // throw during the server render that produces the static loading shell) — but the eventual
-  // setGate calls are what react-hooks/set-state-in-effect flags as "avoid calling setState
-  // directly within an effect". Deferring by a microtask keeps the gate decision effectively
-  // immediate (it still lands before the next paint) while satisfying the rule.
+  // DELIBERATE WORKAROUND — do not delete without reading this.
+  //
+  // window.location.hash only exists client-side, so reading it has to live in an effect: a
+  // lazy useState initializer would throw during the server render that produces this page's
+  // static loading shell (unlike TestimonialForm, which never renders on the server at all —
+  // see its loadStoredDraft comment — this component genuinely does, which is why it cannot use
+  // that same fix). But calling setGate directly in that effect body is exactly what
+  // react-hooks/set-state-in-effect flags as "avoid calling setState directly within an effect",
+  // so the body below runs inside a queueMicrotask instead — the setGate calls still land before
+  // the next paint, so there is no visible delay, but they are no longer *synchronous within the
+  // effect* as far as the linter's static analysis is concerned.
+  //
+  // The correct long-term fix is useSyncExternalStore, subscribing to hashchange with a
+  // getServerSnapshot sentinel (e.g. undefined) that this component treats as 'loading' — that
+  // is what properly models "external, browser-only source" instead of working around the rule.
+  // It was not done here because it reshapes the loading/missing/unreadable/expired/ready gate
+  // on the most load-bearing page in this feature, which deserves its own reviewed change, not a
+  // drive-by lint fix.
+  //
+  // If you are removing this queueMicrotask wrapper because it looks like pointless
+  // boilerplate: it is not. Removing it without doing the useSyncExternalStore redesign above
+  // will fail `npm run lint` (react-hooks/set-state-in-effect) and block the build.
   useEffect(() => {
     queueMicrotask(() => {
       const raw = window.location.hash.replace(/^#/, '')
