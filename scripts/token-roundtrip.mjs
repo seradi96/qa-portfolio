@@ -133,5 +133,124 @@ check('splitToken accepts payload.sig and rejects everything else', () => {
   assert(splitToken('ab+c.def') === null, 'non-base64url characters should be rejected')
 })
 
+// --- sanitize ----------------------------------------------------------------
+
+const {
+  FieldError,
+  CAPS,
+  normalizeText,
+  graphemeCount,
+  sanitizeAnswer,
+  sanitizeIdentity,
+  extractLinkedinSlug,
+} = await import('../src/lib/sanitize.ts')
+
+function assertFieldError(field, fn, message) {
+  let caught = null
+  try {
+    fn()
+  } catch (err) {
+    caught = err
+  }
+  assert(caught instanceof FieldError, `${message} — expected a FieldError, got ${caught}`)
+  assert(caught.field === field, `${message} — FieldError.field was ${caught.field}, expected ${field}`)
+}
+
+// q + combining dot below + combining dot above. No precomposed form, so NFC keeps all three
+// code units — .length is 3 per cluster, graphemeCount is 1. That difference is the whole point.
+// A ZWJ emoji sequence would NOT work here: U+200D is stripped as a zero-width, by design.
+const CLUSTER = 'q' + '\u0323' + '\u0307'
+
+check('graphemeCount counts clusters, not code units', () => {
+  const hundred = CLUSTER.repeat(100)
+  assert(hundred.length === 300, `expected .length 300, got ${hundred.length}`)
+  assert(graphemeCount(hundred) === 100, `expected 100 graphemes, got ${graphemeCount(hundred)}`)
+})
+
+check('caps are enforced in graphemes, not code units', () => {
+  const hundred = CLUSTER.repeat(100)
+  assert(
+    sanitizeAnswer('whatIDid', hundred, 100) === hundred,
+    '100 clusters should fit a cap of 100 even though .length is 300',
+  )
+  assertFieldError('whatIDid', () => sanitizeAnswer('whatIDid', hundred, 99), '101st grapheme')
+})
+
+check('bidi controls are stripped', () => {
+  const attack = 'Maria' + '\u202E' + 'Popescu' + '\u202C'
+  assert(normalizeText(attack) === 'MariaPopescu', `bidi survived: ${JSON.stringify(normalizeText(attack))}`)
+  assert(sanitizeIdentity('name', attack, CAPS.name) === 'MariaPopescu', 'bidi survived sanitizeIdentity')
+})
+
+check('zero-width characters are stripped', () => {
+  const sneaky = 'TO' + '\u200B' + 'KE' + '\u200D' + 'RO' + '\uFEFF'
+  assert(normalizeText(sneaky) === 'TOKERO', `zero-widths survived: ${JSON.stringify(normalizeText(sneaky))}`)
+})
+
+check('C0 controls go, single newlines stay, runs collapse', () => {
+  assert(normalizeText('a' + '\u0000' + 'b' + '\u0007' + 'c') === 'abc', 'C0 controls survived')
+  assert(normalizeText('one' + '\n' + 'two') === 'one' + '\n' + 'two', 'a single newline was eaten')
+  assert(normalizeText('one' + '\n'.repeat(5) + 'two') === 'one' + '\n' + '\n' + 'two', 'newline run not collapsed to two')
+  assert(normalizeText('one' + '\r' + '\n' + 'two') === 'one' + '\n' + 'two', 'CRLF not normalised')
+})
+
+check('combining-mark runs are capped at four', () => {
+  // 'q' has no precomposed form with a dot below, so NFC cannot swallow the first mark.
+  const zalgo = 'q' + '\u0323'.repeat(30)
+  const out = normalizeText(zalgo)
+  assert(out === 'q' + '\u0323'.repeat(4), `expected 4 marks, got ${out.length - 1}`)
+})
+
+check('an empty required answer is rejected, an empty optional one is not', () => {
+  assertFieldError('hiringManager', () => sanitizeAnswer('hiringManager', '   ', CAPS.hiringManager, true), 'blank required')
+  assertFieldError('hiringManager', () => sanitizeAnswer('hiringManager', undefined, CAPS.hiringManager, true), 'missing required')
+  assert(sanitizeAnswer('anythingElse', '', CAPS.anythingElse) === '', 'blank optional should return an empty string')
+  assert(sanitizeAnswer('anythingElse', undefined, CAPS.anythingElse) === '', 'missing optional should return an empty string')
+})
+
+check('identity fields accept real names and reject markup', () => {
+  assert(sanitizeIdentity('name', '  Andrei  Serban ', CAPS.name) === 'Andrei Serban', 'inner whitespace not collapsed')
+  assert(sanitizeIdentity('company', 'S.C. Happy Media & Co (RO)', CAPS.company) === 'S.C. Happy Media & Co (RO)', 'legal name rejected')
+  assert(sanitizeIdentity('role', 'QA Lead / Test Architect', CAPS.role) === 'QA Lead / Test Architect', 'slash rejected')
+  assertFieldError('name', () => sanitizeIdentity('name', 'Maria <script>', CAPS.name), 'angle brackets')
+  assertFieldError('name', () => sanitizeIdentity('name', 'maria@example.com', CAPS.name), 'at sign')
+  assertFieldError('name', () => sanitizeIdentity('name', '   ', CAPS.name), 'blank identity')
+})
+
+check('extractLinkedinSlug handles a full https URL', () => {
+  assert(
+    extractLinkedinSlug('https://www.linkedin.com/in/maria-popescu-8a41b2') === 'maria-popescu-8a41b2',
+    'https www URL not reduced to a slug',
+  )
+})
+
+check('extractLinkedinSlug handles a bare host with a trailing slash', () => {
+  assert(
+    extractLinkedinSlug('linkedin.com/in/maria-popescu-8a41b2/') === 'maria-popescu-8a41b2',
+    'schemeless URL with a trailing slash not reduced to a slug',
+  )
+})
+
+check('extractLinkedinSlug handles a country subdomain with tracking params', () => {
+  assert(
+    extractLinkedinSlug('https://ro.linkedin.com/in/%C8%99erban-andrei-5a14a51a5?trk=x') ===
+      '%C8%99erban-andrei-5a14a51a5',
+    'percent-encoded slug behind a subdomain and a query string was mangled',
+  )
+})
+
+check('extractLinkedinSlug passes a bare slug through', () => {
+  assert(extractLinkedinSlug('maria-popescu-8a41b2') === 'maria-popescu-8a41b2', 'bare slug rejected')
+  assert(extractLinkedinSlug('  maria-popescu-8a41b2  ') === 'maria-popescu-8a41b2', 'padded bare slug rejected')
+})
+
+check('extractLinkedinSlug refuses anything that is not a LinkedIn profile', () => {
+  assertFieldError('linkedinSlug', () => extractLinkedinSlug('https://evil.example.com/in/maria'), 'foreign host')
+  assertFieldError('linkedinSlug', () => extractLinkedinSlug('javascript:alert(1)'), 'javascript URL')
+  assertFieldError('linkedinSlug', () => extractLinkedinSlug('ab'), 'too short')
+  assertFieldError('linkedinSlug', () => extractLinkedinSlug('x'.repeat(61)), 'too long')
+  assertFieldError('linkedinSlug', () => extractLinkedinSlug(42), 'not a string')
+})
+
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)
