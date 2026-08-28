@@ -23,7 +23,7 @@ Every task's requirements implicitly include this section.
 - **The verification gate is `npm run build` && `npm run lint`, both exiting 0**, plus `npm run check:tokens` once it exists. `npm run build` also runs `npm run postbuild` from Task 14 onward.
 - **`npm run check:tokens` is the only executable test harness in this repo.** Where it can cover behaviour — codec, crypto, sanitisation, URL budget — TDD is real: write the failing assertion, run it, watch it fail, then implement. Where it cannot — UI, route handlers — the cycle is build + lint plus a *named* manual check. Never record a manual check as a test.
 - **Node ≥ 22.18 required** for the harness, which imports `.ts` modules directly via type stripping. Verified working on Node v24.5.0.
-- **Field caps, in graphemes:** `whatIDid` 300, `whatChanged` 400, `hiringManager` 400, `anythingElse` 550, and 80 each for name, role, company. Only `hiringManager` is required.
+- **Field caps, in graphemes:** `whatIDid` 300, `whatChanged` 400, `hiringManager` 400, `anythingElse` 700, and 80 each for name, role, company. Only `hiringManager` is required.
 - **Design system:** amber-400/500 accent only; cards `rounded-2xl` on the `.card-surface` glass; `focus:outline-none focus:ring-2 focus:ring-amber-500` on every interactive element; **no cyan** (reserved for AI content), **no emoji**, no `animate-ping/bounce/spin`, no decorative `animate-pulse`.
 - **Environment variables** (Vercel, Production only): `INVITE_SECRET`, `MOD_SECRET`, `RESEND_API_KEY`, `GITHUB_TOKEN`. Repo `seradi96/qa-portfolio`; owner `andre.serban96@gmail.com`; Resend sender `onboarding@resend.dev`.
 

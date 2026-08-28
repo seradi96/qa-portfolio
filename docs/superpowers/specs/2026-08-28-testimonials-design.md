@@ -139,7 +139,7 @@ Three properties fall out of that one choice, and none of them can be bought bac
 ```
 
 Field caps are counted in graphemes: `whatIDid` 300, `whatChanged` 400, `hiringManager` 400,
-`anythingElse` 550.
+`anythingElse` 700.
 
 `publishedAt` is stamped by the publish endpoint at the moment the pull request is **opened**, not
 when it merges — under decision 2 those can differ by days. It is a sort key and a display date only,
@@ -233,7 +233,7 @@ hard-fails the build on `node:crypto`.
 6. Mint `id = randomBytes(9).toString('base64url')` — 12 chars, carried in the payload so publishing
    is idempotent.
 7. Build the moderation payload, `gzipSync(level 9)`, sign under `m1` with `MOD_SECRET`, assemble the
-   URL. **Assert `url.length <= 1900`**, else 413 with "your answers are about N characters too long".
+   URL. **Assert `url.length <= 2400`**, else 413 with "your answers are about N characters too long".
 8. Send the notification email with one `fetch` to Resend. **The send is the commit point** — a
    non-2xx returns 503 and the form keeps every typed answer. Because nothing is stored, there is no
    half-succeeded write to reconcile: either the owner has the submission or the submitter still does.
@@ -250,14 +250,28 @@ the honest case):
 |---|---|---|
 | Distinct English prose | 1663 | 237 |
 | Distinct Romanian prose, realistic identity | 1848 | 52 |
-| **Absolute legal maximum: Romanian, identity fields at 80, slug at 60** | **1835** | **65** |
+| **Absolute legal maximum: Romanian, identity at 80, slug at 60, `anythingElse` 700** | **~2050** | **~350 (budget 2400)** |
 | Pathological incompressible random | 2504 | over by 604 — the 413 exists for this |
 
-The absolute-maximum row is what fixed `anythingElse` at **550** rather than 700: at 700 that same
-input measured 1932, i.e. **32 characters over budget**, so a Romanian colleague who filled every
-field would have been rejected after writing a page and a half. Rejection at that moment is the
-worst experience the feature can produce, and it is worth 150 graphemes of the optional
-catch-all field to make it impossible.
+**Then the budget itself turned out to be the mistake.** Lowering `anythingElse` to 550 bought only
+18 characters of margin against a high-entropy Romanian fixture — a coin flip, since gzip varies by
+a few percent between texts. The right question was not "which cap fits 1900" but "where does 1900
+come from". It came from Outlook truncating around 2000 — **and Outlook is not in the delivery path.**
+§8 constrains the recipient absolutely: Resend's sandbox sender can only deliver to the Resend
+account's own signup address, so the moderation email reaches the owner's Gmail and nothing else,
+ever. Gmail and a mobile browser handle URLs many times this size.
+
+`MAX_MODERATION_URL_CHARS` is therefore **2400**, and `anythingElse` stays at **700**. Real prose in
+any of the three languages lands near 2050 with roughly 350 characters spare, while pathological
+incompressible input still measures around 2555 and still earns the actionable 413. Nobody writing a
+real testimonial can be rejected; the guard survives for the case it was actually built for.
+
+**The load-bearing assumption is that the moderation email only ever reaches Gmail.** If the owner
+later verifies a sending domain (decision 3's alternative), that changes who receives the *author
+receipt*, not the moderation mail — but any change that widens the moderation recipient must revisit
+this number. A second, softer assumption: a URL this long exceeds RFC 5322's 998-octet line limit and
+survives only because MIME transfer encoding folds it with soft breaks the client removes. That is
+not verifiable before the first real send, so §18.4 checks it explicitly.
 
 Two `node:zlib` calls move the worst case from *sitting on the Outlook URL ceiling* to *928 with
 generous caps*. Field limits are therefore an editorial choice, not a transport constraint.
@@ -527,7 +541,7 @@ Placeholder: `Regression used to eat two days of manual clicking. After his fram
 Help: `The honest version, caveats included. This is the one people actually read.`
 Placeholder: `I'd work with him again. He'll push back if he thinks the plan is wrong, which is exactly what you want in a QA lead.`
 
-**Anything else?** *(optional, 550)*
+**Anything else?** *(optional, 700)*
 Help: `A story, a moment, something the questions above missed. Skip it if nothing comes to mind.`
 
 The placeholders are load-bearing, not decoration. The failure mode of a testimonials section is not
@@ -796,8 +810,14 @@ fits.
    forgeable on a public repo.
 5. **Length mismatch must return 403, not 500:** pass a wrong-length signature, assert no `RangeError`
    escapes.
-6. **URL budget:** build the pathological maximum-cap incompressible payload and assert the URL is
-   under 1900. Measured today at 928; this is the regression test for anyone who later raises a cap.
+6. **URL budget:** three assertions, not one. Distinct English prose at every cap must fit. **Distinct
+   high-entropy Romanian at the ABSOLUTE legal maximum** - every answer at its cap, name/role/company
+   each at 80 graphemes, a 60-character percent-encoded slug - must fit; that is the case that
+   overflowed the original budget, and Romanian is what many real submitters will write. And the
+   pathological incompressible payload must still overflow, because the 413 has to keep working.
+   Measured today: English ~1750, Romanian maximum ~2050 against the 2400 budget, incompressible
+   ~2555. Print all three with their spare headroom, so anyone raising a cap sees which case is
+   closest to the edge.
 
 ### 18.3 `npm run postbuild`, wired into `npm run build`
 
@@ -824,7 +844,12 @@ fits.
    values, textareas grow, counter behaves, autosave survives backgrounding the browser and returning.
 3. Submit; the thank-you screen shows the answers back verbatim.
 4. The email **arrives in the inbox, not Promotions or Spam**, and the whole submission is readable in
-   the body without tapping anything. Set the Gmail filter now.
+   the body without tapping anything. Set the Gmail filter now. **Also confirm the moderation links
+   survived transit**: at roughly 2000 characters they exceed RFC 5322's 998-octet line limit, and
+   they arrive intact only because MIME transfer encoding folds them with soft breaks the client
+   removes. Tap the link, never retype it, and confirm the page decodes the record instead of
+   reporting a malformed fragment. This is the one assumption in the design that cannot be verified
+   before a real send - and if it fails, the email's two manual fallbacks are how you publish anyway.
 5. Tap Discard on one submission; nothing was written anywhere, and "delete this email" is the only
    thing on screen.
 6. Submit again; tap Publish. `DecompressionStream` works in his actual browser, the preview card is
