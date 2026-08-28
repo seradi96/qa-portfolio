@@ -91,7 +91,7 @@ check('invite fields survive diacritics and an empty message', () => {
 })
 
 check('encoded payload uses U+001F as the delimiter', () => {
-  assert(FS === '', `FS is ${JSON.stringify(FS)}, expected U+001F`)
+  assert(FS === '\u001F', `FS is ${JSON.stringify(FS)}, expected U+001F`)
   assert(encodeInviteFields(invite).split(FS).length === 7, 'payload is not 7 FS-joined fields')
 })
 
