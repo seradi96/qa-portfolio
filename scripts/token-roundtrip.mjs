@@ -392,6 +392,24 @@ const PROSE = {
     'The thing I remember is the week the payment provider changed a response field without telling anyone. His suite caught it in the overnight run, he had the failing trace and a one paragraph explanation in our channel before the standup, and the fix shipped that afternoon instead of being discovered by a customer. Nobody outside the team ever knew. He also refused to let us mark that test as flaky and skip it, which in hindsight is the only reason it was still running at all. That is the part people miss about test automation: the value is not the tests you write, it is the ones you keep honest for two years after everybody who first wrote them has moved on to some other team.',
 }
 
+// Romanian, not a translation of PROSE above — four independently written passages. Diacritics
+// cost two UTF-8 bytes each pre-gzip, and this project's own colleagues are Romanian and German,
+// so this is the realistic worst case, not the English one. Each passage is written long enough
+// to already meet its cap in code units, same as PROSE above, so toCap only ever slices here —
+// it never doubles, because doubling a paragraph lets gzip crush it and the measurement stops
+// meaning anything (this mistake was made once measuring this exact fixture: 740 chars instead
+// of the real ~1700, because a doubled paragraph compresses far better than natural prose does).
+const PROSE_RO = {
+  whatIDid:
+    'A preluat întreaga suită de testare, de la prima specificație până la pipeline-ul care o rula, și el era persoana pe care o sunam când un build pica roșu la ora șase seara. A scris framework-ul de la zero, ne-a revizuit toate paginile de obiecte și ne-a explicat de fiecare dată de ce o soluție rapidă nu era neapărat și una corectă, chiar dacă asta însemna o discuție mai lungă înainte de commit.',
+  whatChanged:
+    'Regresia obișnuia să mănânce două zile întregi de clicuri manuale înainte de fiecare lansare și tot livram cu emoții, fără nicio garanție reală. După ce framework-ul lui a intrat în producție, testele rulau peste noapte la fiecare integrare, vedeam eșecurile dimineața la ora nouă cu jurnalul complet atașat, iar ședința de lansare nu mai era o ceartă despre dacă cineva a testat cu adevărat fluxul de plată pe un dispozitiv real de data aceasta, cu dovezi în loc de presupuneri.',
+  hiringManager:
+    'Aș lucra cu el din nou fără să mă gândesc de două ori. Va contrazice planul dacă îl consideră greșit, exact ceea ce îți dorești de la cineva responsabil de calitate, și o face mereu cu dovezi concrete, nu doar cu o părere aruncată în ședință. Este de asemenea unul dintre puținii ingineri de automatizare care scrie documentație pe care restul echipei o poate urma și peste un an, fără să îl mai întrebe nimic, ceea ce contează enorm când echipa se schimbă.',
+  anythingElse:
+    'Ce îmi amintesc cel mai bine este săptămâna în care furnizorul de plăți a schimbat un câmp din răspuns fără să anunțe pe nimeni. Suita lui a prins problema chiar în rularea de peste noapte, iar el a avut jurnalul cu eșecul și o explicație de un paragraf pe canalul nostru înainte de stand-up, iar remedierea a ajuns în producție chiar în după-amiaza aceea, în loc să fie descoperită de un client furios. Nimeni din afara echipei nu a aflat vreodată de incident. De asemenea, a refuzat categoric să marcăm acel test ca fiind instabil doar ca să îl ignorăm mai departe, ceea ce, retrospectiv, e singurul motiv pentru care mai rula deloc un an mai târziu. Asta e partea pe care oamenii o ratează cel mai des la automatizarea testelor: valoarea nu stă în testele pe care le scrii într-o săptămână bună, ci în cele pe care le ții oneste timp de doi ani, mult după ce toți cei care le-au scris inițial au plecat în altă echipă sau chiar din companie cu totul.',
+}
+
 const toCap = (text, cap) => (text.length >= cap ? text.slice(0, cap) : `${text} ${text}`.slice(0, cap))
 const noise = (n) => randomBytes(n * 2).toString('base64').replace(/[+/=]/g, 'A').slice(0, n)
 
@@ -415,6 +433,28 @@ const naturalUrl = moderationUrlFor(
   },
 )
 
+// Realistic long percent-encoded slug: LinkedIn (and extractLinkedinSlug's own SLUG regex, which
+// allows up to 60 chars) leaves ASCII letters/digits/hyphens alone and percent-encodes only the
+// non-ASCII UTF-8 bytes, which is exactly what encodeURIComponent does. This is not noise padded
+// to a cap — it is what actually comes out of a Romanian name with diacritics, same shape as this
+// site owner's own real slug (%C8%99erban-andrei-5a14a51a5, see src/lib/sanitize.ts).
+const romanianSlug = encodeURIComponent('ștefania-rădulescu-bălănescu-5a14a51a5')
+
+const romanianUrl = moderationUrlFor(
+  {
+    whatIDid: toCap(PROSE_RO.whatIDid, CAPS.whatIDid),
+    whatChanged: toCap(PROSE_RO.whatChanged, CAPS.whatChanged),
+    hiringManager: toCap(PROSE_RO.hiringManager, CAPS.hiringManager),
+    anythingElse: toCap(PROSE_RO.anythingElse, CAPS.anythingElse),
+  },
+  {
+    name: toCap('Ștefania-Alexandra Rădulescu-Bălănescu', CAPS.name),
+    role: toCap('Inginer Senior de Automatizare a Testelor de Asigurare a Calității', CAPS.role),
+    company: toCap('Societatea de Testare și Automatizare Financiară Digitală', CAPS.company),
+    linkedinSlug: romanianSlug,
+  },
+)
+
 const noiseUrl = moderationUrlFor(
   {
     whatIDid: noise(CAPS.whatIDid),
@@ -431,14 +471,30 @@ const noiseUrl = moderationUrlFor(
 )
 
 console.log(
-  `      URL budget ${MAX_MODERATION_URL_CHARS}: natural language at every cap = ${naturalUrl.length} chars ` +
-    `(${MAX_MODERATION_URL_CHARS - naturalUrl.length} spare), incompressible at every cap = ${noiseUrl.length} chars`,
+  `      URL budget ${MAX_MODERATION_URL_CHARS}: ` +
+    `English at every cap = ${naturalUrl.length} chars (${MAX_MODERATION_URL_CHARS - naturalUrl.length} spare), ` +
+    `Romanian at every cap = ${romanianUrl.length} chars (${MAX_MODERATION_URL_CHARS - romanianUrl.length} spare), ` +
+    `incompressible at every cap = ${noiseUrl.length} chars (${noiseUrl.length - MAX_MODERATION_URL_CHARS} over)`,
 )
 
 check('natural-language answers at every cap fit the moderation URL', () => {
   assert(
     naturalUrl.length <= MAX_MODERATION_URL_CHARS,
     `natural-language worst case is ${naturalUrl.length} chars, over the ${MAX_MODERATION_URL_CHARS} budget. Lower a cap in CAPS, or raise MAX_MODERATION_URL_CHARS knowing Outlook truncates around 2000.`,
+  )
+})
+
+// Romanian is the language with the least headroom of the two natural-language cases measured
+// here: diacritics cost two UTF-8 bytes each pre-gzip, and the percent-encoded LinkedIn slug is
+// where that really bites — romanianSlug above is a 38-character name that becomes 58 characters
+// once encodeURIComponent turns every diacritic into a %XX pair, the same shape as this site
+// owner's own real slug (%C8%99erban-andrei-5a14a51a5, see src/lib/sanitize.ts). A cap raise that
+// only re-checks the English assertion above can still ship a 413 for a genuine Romanian
+// submitter — this assertion is what makes that regression visible.
+check('Romanian answers with diacritics and a percent-encoded LinkedIn slug fit the moderation URL', () => {
+  assert(
+    romanianUrl.length <= MAX_MODERATION_URL_CHARS,
+    `Romanian worst case is ${romanianUrl.length} chars, over the ${MAX_MODERATION_URL_CHARS} budget. Lower a cap in CAPS, or raise MAX_MODERATION_URL_CHARS knowing Outlook truncates around 2000.`,
   )
 })
 
