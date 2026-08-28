@@ -139,7 +139,7 @@ Three properties fall out of that one choice, and none of them can be bought bac
 ```
 
 Field caps are counted in graphemes: `whatIDid` 300, `whatChanged` 400, `hiringManager` 400,
-`anythingElse` 700.
+`anythingElse` 550.
 
 `publishedAt` is stamped by the publish endpoint at the moment the pull request is **opened**, not
 when it merges — under decision 2 those can differ by days. It is a sort key and a display date only,
@@ -242,11 +242,22 @@ hard-fails the build on `node:crypto`.
 
 Same fields, same encoding, only the codec differs:
 
-| Content at generous caps (~2,000 UTF-8 bytes) | raw base64url | gzip + base64url |
+**Measured on the real implementation, 2026-08-28** (the figures in the original design were
+optimistic by roughly 4x — they assumed repetitive text, which gzip crushes; distinct prose is
+the honest case):
+
+| Full moderation URL, every answer field at its cap | chars | spare against 1900 |
 |---|---|---|
-| Natural English | 2,753 chars | **382** |
-| Romanian with diacritics | 3,550 chars | **364** |
-| Pathological incompressible random | 2,753 chars | **928** |
+| Distinct English prose | 1663 | 237 |
+| Distinct Romanian prose, realistic identity | 1848 | 52 |
+| **Absolute legal maximum: Romanian, identity fields at 80, slug at 60** | **1835** | **65** |
+| Pathological incompressible random | 2504 | over by 604 — the 413 exists for this |
+
+The absolute-maximum row is what fixed `anythingElse` at **550** rather than 700: at 700 that same
+input measured 1932, i.e. **32 characters over budget**, so a Romanian colleague who filled every
+field would have been rejected after writing a page and a half. Rejection at that moment is the
+worst experience the feature can produce, and it is worth 150 graphemes of the optional
+catch-all field to make it impossible.
 
 Two `node:zlib` calls move the worst case from *sitting on the Outlook URL ceiling* to *928 with
 generous caps*. Field limits are therefore an editorial choice, not a transport constraint.
@@ -516,7 +527,7 @@ Placeholder: `Regression used to eat two days of manual clicking. After his fram
 Help: `The honest version, caveats included. This is the one people actually read.`
 Placeholder: `I'd work with him again. He'll push back if he thinks the plan is wrong, which is exactly what you want in a QA lead.`
 
-**Anything else?** *(optional, 700)*
+**Anything else?** *(optional, 550)*
 Help: `A story, a moment, something the questions above missed. Skip it if nothing comes to mind.`
 
 The placeholders are load-bearing, not decoration. The failure mode of a testimonials section is not
