@@ -16,7 +16,7 @@ export const CAPS = {
   whatIDid: 300,
   whatChanged: 400,
   hiringManager: 400,
-  anythingElse: 700,
+  anythingElse: 550,
   name: 80,
   role: 80,
   company: 80,
