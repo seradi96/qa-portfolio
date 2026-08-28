@@ -34,9 +34,11 @@ function ghHeaders(token: string, withJsonBody: boolean): Record<string, string>
 }
 
 /** Returned, not thrown, so call sites can `throw await ghError(...)` and TypeScript
- *  sees the control flow end there. */
-async function ghError(what: string, res: Response): Promise<Error> {
-  const body = await res.text().catch(() => '')
+ *  sees the control flow end there. `preReadBody` lets a caller that already consumed
+ *  the response stream (to inspect the body before deciding whether to throw) hand
+ *  that text back in, since a Response body can only be read once. */
+async function ghError(what: string, res: Response, preReadBody?: string): Promise<Error> {
+  const body = preReadBody ?? (await res.text().catch(() => ''))
   return new Error(`GitHub ${what} failed: ${res.status} ${res.statusText} ${body.slice(0, 500)}`)
 }
 
@@ -164,13 +166,38 @@ async function readRefSha(token: string, ref: string): Promise<string | null> {
   return sha
 }
 
-async function createRef(token: string, ref: string, sha: string): Promise<void> {
+/**
+ * `true` if this call created the ref, `false` if it already existed (absorbed as a 422 —
+ * the same double-tap `openOrFindPullRequest` already tolerates on `/pulls`).
+ *
+ * The status code alone can't tell that apart from a real bug: `POST /git/refs` returns 422
+ * for several distinct validation failures — a malformed ref name, a sha that doesn't resolve
+ * to a commit, AND an already-existing ref all come back as 422. Only the response body's
+ * message distinguishes "someone beat you to it" from "this request is actually broken", so
+ * match on that, not on the status, and let every other 422 (and every other status) still
+ * throw with the step named.
+ */
+async function createRef(token: string, ref: string, sha: string): Promise<boolean> {
   const res = await fetch(`${API}/git/refs`, {
     method: 'POST',
     headers: ghHeaders(token, true),
     body: JSON.stringify({ ref, sha }),
   })
-  if (!res.ok) throw await ghError(`create ref ${ref}`, res)
+  if (res.ok) return true
+
+  if (res.status === 422) {
+    const bodyText = await res.text().catch(() => '')
+    let message: unknown
+    try {
+      message = (JSON.parse(bodyText) as { message?: unknown }).message
+    } catch {
+      message = undefined
+    }
+    if (typeof message === 'string' && /already exists/i.test(message)) return false
+    throw await ghError(`create ref ${ref}`, res, bodyText)
+  }
+
+  throw await ghError(`create ref ${ref}`, res)
 }
 
 async function findOpenPullRequest(token: string, branch: string): Promise<string | null> {
@@ -252,8 +279,43 @@ async function openOrFindPullRequest(
 }
 
 /**
+ * The branch already exists — either it was there before this call started, or a concurrent
+ * call (a double tap: the owner taps Publish, sees nothing happen over a slow connection, taps
+ * again) just created it while this one was mid-flight. Either way, converge on the same
+ * outcome rather than erroring: reuse an open pull request if there is one; otherwise finish
+ * writing the record — idempotently, `putFileWithRetry` already tolerates a racing write of
+ * the same id — and open one.
+ */
+async function finishOnExistingBranch(
+  token: string,
+  branch: string,
+  record: TestimonialRecord,
+): Promise<PublishResult> {
+  const open = await findOpenPullRequest(token, branch)
+  if (open !== null) return { status: 'pr_open', prUrl: open }
+
+  // A branch with no open pull request: a previous call died between creating the ref and
+  // opening the pull request, the pull request was closed by hand, or — the fresh-record case
+  // — a racing call only just created the branch and hasn't written the file yet. Finish the
+  // job on the branch that is already there.
+  const onBranch = await readFile(token, branch)
+  if (!containsId(onBranch.entries, record.id)) {
+    await putFileWithRetry(
+      token,
+      branch,
+      onBranch.sha,
+      renderFile(onBranch.entries, record),
+      record,
+    )
+  }
+  return openOrFindPullRequest(token, branch, record)
+}
+
+/**
  * Idempotent in two places: an id already on main is `already_published`, and an
  * existing branch returns its open pull request instead of opening a second one.
+ * A third race — two calls both passing the branch-existence check before either has
+ * created it — is absorbed at `createRef`'s 422 and converges on the same path.
  * The caller stamps `record.publishedAt` before calling — this module writes the
  * record it is given, verbatim.
  */
@@ -266,28 +328,19 @@ export async function publishTestimonial(record: TestimonialRecord): Promise<Pub
 
   const existingBranch = await readRefSha(token, `heads/${branch}`)
   if (existingBranch !== null) {
-    const open = await findOpenPullRequest(token, branch)
-    if (open !== null) return { status: 'pr_open', prUrl: open }
-
-    // A branch with no open pull request: a previous call died between creating
-    // the ref and opening the pull request, or the pull request was closed by
-    // hand. Finish the job on the branch that is already there.
-    const onBranch = await readFile(token, branch)
-    if (!containsId(onBranch.entries, record.id)) {
-      await putFileWithRetry(
-        token,
-        branch,
-        onBranch.sha,
-        renderFile(onBranch.entries, record),
-        record,
-      )
-    }
-    return openOrFindPullRequest(token, branch, record)
+    return finishOnExistingBranch(token, branch, record)
   }
 
   const mainHead = await readRefSha(token, `heads/${BASE_BRANCH}`)
   if (mainHead === null) throw new Error(`GitHub has no ref heads/${BASE_BRANCH}`)
-  await createRef(token, `refs/heads/${branch}`, mainHead)
+  const created = await createRef(token, `refs/heads/${branch}`, mainHead)
+  if (!created) {
+    // Lost the race: another call created the branch between our readRefSha check above and
+    // this createRef call. This call has written nothing — converge on the same outcome the
+    // winner will reach (or already has), instead of throwing a 502 for a publish that is
+    // actually succeeding.
+    return finishOnExistingBranch(token, branch, record)
+  }
 
   // The branch was just cut from main, so main's blob sha is the branch's blob sha.
   await putFileWithRetry(token, branch, base.sha, renderFile(base.entries, record), record)
