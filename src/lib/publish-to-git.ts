@@ -86,6 +86,27 @@ function containsId(entries: unknown[], id: string): boolean {
   )
 }
 
+function linkedinSlugOf(entry: unknown): string | null {
+  if (typeof entry !== 'object' || entry === null) return null
+  const author = (entry as { author?: unknown }).author
+  if (typeof author !== 'object' || author === null) return null
+  const slug = (author as { linkedinSlug?: unknown }).linkedinSlug
+  return typeof slug === 'string' ? slug : null
+}
+
+/**
+ * True when `main` already has a published entry from the same LinkedIn profile. Idempotency
+ * elsewhere in this module is keyed on `record.id`, which is minted fresh on every submission —
+ * so a colleague re-submitting from the still-open invite link (the documented "spotted a typo"
+ * recovery path) produces a second, independently publishable id under the same author. This
+ * check does not change that: it only surfaces the situation in the pull request body so the
+ * owner — who reads the PR before merging — can choose to close the stale one instead of
+ * publishing two cards for one person.
+ */
+function containsLinkedinSlug(entries: unknown[], slug: string): boolean {
+  return entries.some((e) => linkedinSlugOf(e) === slug)
+}
+
 function publishedAtOf(entry: unknown): string {
   if (typeof entry === 'object' && entry !== null) {
     const v = (entry as { publishedAt?: unknown }).publishedAt
@@ -215,13 +236,25 @@ async function findOpenPullRequest(token: string, branch: string): Promise<strin
   return typeof url === 'string' ? url : null
 }
 
-function pullRequestBody(record: TestimonialRecord): string {
+function pullRequestBody(record: TestimonialRecord, authorAlreadyPublished: boolean): string {
   const { author, answers } = record
   const label = isProjectSlug(record.projectSlug)
     ? PROJECT_LABELS[record.projectSlug]
     : record.projectSlug
 
-  const lines: string[] = [
+  const lines: string[] = []
+  if (authorAlreadyPublished) {
+    // Deliberately the very first thing in the body: a warning below the fold, after the
+    // rendered answers, is the one an owner skimming on a phone will miss.
+    lines.push(
+      `> ⚠️ **${author.name}** (LinkedIn: \`${author.linkedinSlug}\`) already has a published ` +
+        `testimonial on main. Merging this adds a SECOND one from the same person — check ` +
+        `\`src/content/testimonials.json\` and close/replace the stale entry if this is a ` +
+        `resubmission rather than a genuinely separate testimonial.`,
+      '',
+    )
+  }
+  lines.push(
     `**${author.name}** — ${author.role}, ${author.company} (at the time)`,
     '',
     `Project: ${label}`,
@@ -230,7 +263,7 @@ function pullRequestBody(record: TestimonialRecord): string {
     '',
     '### To a hiring manager',
     answers.hiringManager,
-  ]
+  )
   if (answers.whatChanged.trim() !== '') {
     lines.push('', '### What changed because of it', answers.whatChanged)
   }
@@ -248,13 +281,14 @@ async function openOrFindPullRequest(
   token: string,
   branch: string,
   record: TestimonialRecord,
+  authorAlreadyPublished: boolean,
 ): Promise<PublishResult> {
   const res = await fetch(`${API}/pulls`, {
     method: 'POST',
     headers: ghHeaders(token, true),
     body: JSON.stringify({
       title: `Testimonial: ${record.author.name} (${record.author.company})`,
-      body: pullRequestBody(record),
+      body: pullRequestBody(record, authorAlreadyPublished),
       head: branch,
       base: BASE_BRANCH,
     }),
@@ -290,6 +324,7 @@ async function finishOnExistingBranch(
   token: string,
   branch: string,
   record: TestimonialRecord,
+  authorAlreadyPublished: boolean,
 ): Promise<PublishResult> {
   const open = await findOpenPullRequest(token, branch)
   if (open !== null) return { status: 'pr_open', prUrl: open }
@@ -308,7 +343,7 @@ async function finishOnExistingBranch(
       record,
     )
   }
-  return openOrFindPullRequest(token, branch, record)
+  return openOrFindPullRequest(token, branch, record, authorAlreadyPublished)
 }
 
 /**
@@ -326,9 +361,15 @@ export async function publishTestimonial(record: TestimonialRecord): Promise<Pub
   const base = await readFile(token, BASE_BRANCH)
   if (containsId(base.entries, record.id)) return { status: 'already_published' }
 
+  // Computed once, from the same main-branch read the idempotency check above already did.
+  // See containsLinkedinSlug's doc comment for why this exists: idempotency is keyed on
+  // record.id, not on author, so a resubmission from the same still-open invite link is not
+  // caught by the check above.
+  const authorAlreadyPublished = containsLinkedinSlug(base.entries, record.author.linkedinSlug)
+
   const existingBranch = await readRefSha(token, `heads/${branch}`)
   if (existingBranch !== null) {
-    return finishOnExistingBranch(token, branch, record)
+    return finishOnExistingBranch(token, branch, record, authorAlreadyPublished)
   }
 
   const mainHead = await readRefSha(token, `heads/${BASE_BRANCH}`)
@@ -339,11 +380,11 @@ export async function publishTestimonial(record: TestimonialRecord): Promise<Pub
     // this createRef call. This call has written nothing — converge on the same outcome the
     // winner will reach (or already has), instead of throwing a 502 for a publish that is
     // actually succeeding.
-    return finishOnExistingBranch(token, branch, record)
+    return finishOnExistingBranch(token, branch, record, authorAlreadyPublished)
   }
 
   // The branch was just cut from main, so main's blob sha is the branch's blob sha.
   await putFileWithRetry(token, branch, base.sha, renderFile(base.entries, record), record)
 
-  return openOrFindPullRequest(token, branch, record)
+  return openOrFindPullRequest(token, branch, record, authorAlreadyPublished)
 }

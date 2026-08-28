@@ -92,7 +92,7 @@ Content lives in **two** places: `src/app/page.tsx` as plain arrays/objects abov
 - **`testimonials.json`** — written by merging the pull request that `/api/testimonials/publish` opens; hand-edit it only to correct or remove a record. `src/lib/testimonials.ts` validates on import and **drops** malformed records silently, so a bad edit makes a testimonial vanish rather than fail the build. Operating instructions: `docs/testimonials-runbook.md`.
 
 - **`projects`** (line ~65) — ordered array; display order = array order. Each entry: `title`, `description`, `technologies[]`, optional `tooling[]`, `highlights[]`, `status`, `impact { businessValue, scale, timeline, efficiency? }`, `clientType`, `role`, `keyAchievements[]`, optional `subProjects[]`.
-- **`SubProject`** type (line 8) — `name`, `repo`, `stack[]`, `metrics`, `timeline`, `status`, `highlights[]`.
+- **`SubProject`** type (line 11) — `name`, `repo`, `stack[]`, `metrics`, `timeline`, `status`, `highlights[]`.
 - **`qaFilterOptions`** — technology filter chips. A chip only matches if the exact string appears in a project's `technologies[]` or as a substring of a `tooling[]` entry. Adding a chip with no match silently yields an empty grid.
 - **`skills`** — category → skill list, rendered as cards.
 

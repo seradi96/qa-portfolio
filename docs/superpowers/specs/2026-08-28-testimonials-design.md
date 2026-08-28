@@ -276,10 +276,11 @@ come from". It came from Outlook truncating around 2000 — **and Outlook is not
 account's own signup address, so the moderation email reaches the owner's Gmail and nothing else,
 ever. Gmail and a mobile browser handle URLs many times this size.
 
-`MAX_MODERATION_URL_CHARS` is therefore **2400**, and `anythingElse` stays at **700**. Real prose in
-any of the three languages lands near 2050 with roughly 350 characters spare, while pathological
-incompressible input still measures around 2555 and still earns the actionable 413. Nobody writing a
-real testimonial can be rejected; the guard survives for the case it was actually built for.
+`MAX_MODERATION_URL_CHARS` is therefore **2400**, and `anythingElse` stays at **700**. Real prose
+measures 1663 chars in English (737 spare) and 1991 chars in the Romanian absolute-maximum case (409
+spare), while pathological incompressible input still measures around 2510 and still earns the
+actionable 413. Nobody writing a real testimonial can be rejected; the guard survives for the case it
+was actually built for.
 
 **The load-bearing assumption is that the moderation email only ever reaches Gmail.** If the owner
 later verifies a sending domain (decision 3's alternative), that changes who receives the *author
@@ -288,8 +289,13 @@ this number. A second, softer assumption: a URL this long exceeds RFC 5322's 998
 survives only because MIME transfer encoding folds it with soft breaks the client removes. That is
 not verifiable before the first real send, so §18.4 checks it explicitly.
 
-Two `node:zlib` calls move the worst case from *sitting on the Outlook URL ceiling* to *928 with
-generous caps*. Field limits are therefore an editorial choice, not a transport constraint.
+Two `node:zlib` calls move the worst case from *sitting on the Outlook URL ceiling* to comfortably
+inside the 2400 budget — measured today at 1663 (English) to 1991 (Romanian, the tightest realistic
+case), per `npm run check:tokens`. (An earlier draft of this section cited "928 with generous caps";
+that figure predates the 2400 budget and the current field caps and is superseded by the measured
+values above — kept here only as a note that the number has moved before and should be re-measured,
+not retyped, if it needs to move again.) Field limits are therefore an editorial choice, not a
+transport constraint.
 
 ---
 
@@ -364,9 +370,9 @@ Puppeteer dispatch CDP clicks carrying `isTrusted: true`, so it is friction dres
    proves *we* produced the payload, not that it is still well-formed.
 3. `GET /repos/seradi96/qa-portfolio/contents/src/content/testimonials.json?ref=main` for
    `{ content, sha }`.
-4. **Idempotency, in two places.** If `id` is already present in `main`, return 200 `{ already: true }`
-   and stop. Otherwise, if the branch `testimonial/<id>` already exists, return the existing pull
-   request rather than creating a second one.
+4. **Idempotency, in two places.** If `id` is already present in `main`, return 200
+   `{ status: 'already_published' }` and stop. Otherwise, if the branch `testimonial/<id>` already
+   exists, return the existing pull request rather than creating a second one.
 5. Append, sort newest-first, `JSON.stringify(arr, null, 2) + '\n'`. The file is machine-written,
    never string-templated, so injection into the data file is structurally impossible.
 6. `POST /repos/.../git/refs` to create `refs/heads/testimonial/<id>` from `main`'s head SHA.
@@ -665,7 +671,7 @@ himself?"* — it converts the invite-only gate from a limitation into the credi
 ## 14. Anti-abuse: what is built, and what is refused
 
 **Built:** hand-minted invites, 45-day expiry, `Origin` pinning, 16 KB body cap, grapheme caps,
-allowlists, the 1900-character URL assert, Resend's 100/day ceiling as a natural backstop, and secret
+allowlists, the 2400-character URL assert, Resend's 100/day ceiling as a natural backstop, and secret
 rotation as the panic button.
 
 **Refused, deliberately:** CAPTCHA, bot detection, per-IP rate limiting, proof-of-work, IP logging.
@@ -708,6 +714,17 @@ exchange for a control the invite link already provides.
   a suggestion.
 - **The moderate page requires JavaScript and `DecompressionStream`** (Chrome 80+, Safari 16.4+,
   Firefox 113+). One known user, his own phone, with two manual fallbacks in the email itself.
+- **The invite page requires `Intl.Segmenter`** (Chrome/Edge 110+, Safari 16.4+, Firefox 125+,
+  roughly the mirror of the `DecompressionStream` floor above but higher). Unlike the moderate page,
+  the owner does not choose the invite page's browser — a colleague can open it from anywhere,
+  including LinkedIn's in-app browser, which is plausibly below this floor. `src/lib/sanitize.ts`
+  constructs the segmenter lazily and falls back to `Array.from(input).length` (code points, not
+  grapheme clusters) when it is missing, so the page still hydrates and still works — the fallback
+  can only make the client-side grapheme cap slightly stricter than the server's, never looser,
+  because the publish route re-sanitises with Node's own `Intl.Segmenter` regardless. No manual
+  fallback screen exists for this one, unlike `DecompressionStream`'s, because none is needed: the
+  form keeps working, it just counts a pathological ZWJ/combining-mark sequence a little more
+  conservatively on an unsupported browser.
 - **A forwarded invite lets a non-invitee submit under a name and slug of their choosing**, including a
   plausible impersonation. Nothing is public before approval; the owner reads the full text and the
   attribution model exists precisely so he verifies against the real LinkedIn profile during review.
@@ -830,9 +847,10 @@ fits.
    each at 80 graphemes, a 60-character percent-encoded slug - must fit; that is the case that
    overflowed the original budget, and Romanian is what many real submitters will write. And the
    pathological incompressible payload must still overflow, because the 413 has to keep working.
-   Measured today: English ~1750, Romanian maximum ~2050 against the 2400 budget, incompressible
-   ~2555. Print all three with their spare headroom, so anyone raising a cap sees which case is
-   closest to the edge.
+   Measured today: English 1663, Romanian maximum 1991 against the 2400 budget, incompressible
+   ~2510 (this last one is random bytes, so it varies a few characters run to run — see 7.1's table
+   for the exact run this spec was reconciled against). Print all three with their spare headroom, so
+   anyone raising a cap sees which case is closest to the edge.
 
 ### 18.3 `npm run postbuild`, wired into `npm run build`
 

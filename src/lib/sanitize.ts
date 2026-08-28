@@ -30,7 +30,25 @@ const COMBINING_RUN = /(\p{M}{4})\p{M}+/gu
 // Not /g: a global regex carries lastIndex between .test() calls and would alternate true/false.
 const IDENTITY_FORBIDDEN = /[^\p{L}\p{M}\p{N} .,'’&()\-\/+]/u
 
-const GRAPHEMES = new Intl.Segmenter('en', { granularity: 'grapheme' })
+// Lazily constructed, NOT at module scope. src/app/invite/TestimonialForm.tsx imports this
+// module, so a module-scope `new Intl.Segmenter(...)` runs the instant the client chunk is
+// evaluated — on Firefox < 125, Samsung Internet < 14, older Android WebView, and plausibly
+// LinkedIn's in-app browser (exactly where a colleague opens an invite link sent as a LinkedIn
+// DM), the constructor throws `TypeError: Intl.Segmenter is not a constructor` at that point,
+// the chunk never finishes evaluating, and /invite never hydrates — no error, no fallback, the
+// page just sits on "Opening your link…" forever. Deferring construction to first use means the
+// throw (if any) happens inside the try/catch below instead of during chunk evaluation.
+let segmenter: Intl.Segmenter | null | undefined
+
+function getSegmenter(): Intl.Segmenter | null {
+  if (segmenter !== undefined) return segmenter
+  try {
+    segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' })
+  } catch {
+    segmenter = null
+  }
+  return segmenter
+}
 
 export function normalizeText(input: string): string {
   return input
@@ -46,7 +64,15 @@ export function normalizeText(input: string): string {
 }
 
 export function graphemeCount(input: string): number {
-  return Array.from(GRAPHEMES.segment(input)).length
+  const seg = getSegmenter()
+  if (seg) return Array.from(seg.segment(input)).length
+  // Fallback for a browser with no Intl.Segmenter: Array.from(string) counts Unicode code
+  // points, not grapheme clusters, so a ZWJ emoji sequence or a stacked combining-mark run
+  // counts as several characters instead of one. That makes the cap slightly stricter on such
+  // a browser — it can only cause the client to refuse a submission the server (Node >= 22.18,
+  // which always has Intl.Segmenter) would accept, never the reverse, since the server-side
+  // re-sanitisation in the publish route is what is actually authoritative.
+  return Array.from(input).length
 }
 
 export function sanitizeAnswer(field: string, value: unknown, cap: number, required = false): string {

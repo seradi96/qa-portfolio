@@ -206,8 +206,11 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     // §7.7 — sign under m1 (gzip happens inside signModerationToken) and assert the
-    // whole moderation URL fits. Measured worst case today is 928 chars; the assert
-    // is what keeps a later cap increase from silently producing an unusable link.
+    // whole moderation URL fits. Measured by `npm run check:tokens` against the 2400
+    // budget: English prose at every cap 1663 chars, Romanian at the absolute legal
+    // maximum (every cap, 60-char encoded slug) 1991 chars, pathological incompressible
+    // input ~2507 (still over, which is what the 413 below exists for). The assert is
+    // what keeps a later cap increase from silently producing an unusable link.
     const moderationToken = signModerationToken(record, modSecret)
     const moderationUrl = `${SITE_ORIGIN}/moderate#a=publish&t=${moderationToken}`
     if (moderationUrl.length > MAX_MODERATION_URL_CHARS) {

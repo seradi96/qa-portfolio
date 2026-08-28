@@ -23,7 +23,7 @@ import {
 import { SITE_ORIGIN, assertSecret, verifyModerationToken } from '@/lib/token'
 import type { TestimonialRecord } from '@/lib/token-types'
 
-/** The body is one moderation token, itself capped at 1900 URL characters. */
+/** The body is one moderation token, itself capped at 2400 URL characters (MAX_MODERATION_URL_CHARS in src/lib/token.ts). */
 const MAX_BODY_BYTES = 8192
 
 const ID_RE = /^[A-Za-z0-9_-]{12}$/
