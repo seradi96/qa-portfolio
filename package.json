@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "check:tokens": "node --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/token-roundtrip.mjs",
+    "invite": "node --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/invite.mjs",
     "lint": "eslint",
     "lint:fix": "eslint --fix"
   },

@@ -523,5 +523,110 @@ check('incompressible answers at every cap overflow the budget, which is what th
   )
 })
 
+// --- client-side decoding (no secret) ----------------------------------------
+// DecompressionStream and Blob are Node globals from 18 onward, so the browser path is genuinely
+// executable here rather than only reasoned about.
+
+async function checkAsync(name, fn) {
+  try {
+    await fn()
+    passed++
+    console.log(`PASS  ${name}`)
+  } catch (err) {
+    failed++
+    console.log(`FAIL  ${name}`)
+    console.log(`      ${err instanceof Error ? err.message : String(err)}`)
+  }
+}
+
+const { decodeInviteUnverified, decodeModerationUnverified } = await import(
+  '../src/lib/token-client.ts'
+)
+
+const clientInvite = {
+  v: '1',
+  name: 'Maria Popescu',
+  role: 'QA Lead',
+  company: 'TOKERO',
+  projectSlug: 'tokero',
+  message: 'A few lines about the suite?',
+  exp: 1801526400,
+}
+
+const clientRecord = {
+  id: 'aB3xK9pQr7Zt',
+  projectSlug: 'tokero',
+  publishedAt: '2026-09-14',
+  submittedAt: '2026-09-13',
+  consent: { version: 1, at: '2026-09-13T18:42:07Z' },
+  author: {
+    name: 'Maria Popescu',
+    role: 'QA Lead',
+    company: 'TOKERO',
+    linkedinSlug: 'maria-popescu-8a41b2',
+  },
+  answers: {
+    whatIDid: '',
+    whatChanged: 'Overnight instead of two days.',
+    hiringManager: 'I would work with him again.',
+    anythingElse: '',
+  },
+}
+
+check('the invite fragment decodes to the same fields the server will verify', () => {
+  const token = signInviteToken(clientInvite, INVITE_SECRET)
+  assertDeepEqual(decodeInviteUnverified(`#${token}`), clientInvite, 'prefill differs from the signed fields')
+  assertDeepEqual(decodeInviteUnverified(token), clientInvite, 'a fragment without the leading # was rejected')
+})
+
+check('a forged invite signature still decodes here, because this module cannot verify', () => {
+  const [payload] = signInviteToken(clientInvite, INVITE_SECRET).split('.')
+  const forged = decodeInviteUnverified(`#${payload}.${'A'.repeat(43)}`)
+  assert(
+    forged !== null && forged.name === clientInvite.name,
+    'the trust boundary moved: token-client must decode WITHOUT verifying, or the browser needs a secret',
+  )
+})
+
+check('malformed invite fragments return null', () => {
+  for (const bad of ['', '#', '#notatoken', '#a.b.c', '#.', `#${'A'.repeat(20)}`]) {
+    assert(decodeInviteUnverified(bad) === null, `expected null for ${JSON.stringify(bad)}`)
+  }
+})
+
+await checkAsync('the moderation fragment gunzips on the browser path', async () => {
+  const token = signModerationToken(clientRecord, MOD_SECRET)
+  assertDeepEqual(
+    await decodeModerationUnverified(`#a=publish&t=${token}`),
+    clientRecord,
+    'the record did not survive gzip in, gunzip out',
+  )
+  assertDeepEqual(
+    await decodeModerationUnverified(`a=discard&t=${token}`),
+    clientRecord,
+    'a fragment without the leading # was rejected',
+  )
+})
+
+await checkAsync('an absent, malformed or non-gzip moderation fragment returns null', async () => {
+  for (const bad of [
+    '',
+    '#',
+    '#a=publish',
+    '#a=publish&t=',
+    '#a=publish&t=notatoken',
+    '#a=publish&t=AAAAAAAA.BBBBBBBB',
+    `#t=${'A'.repeat(60)}.${'B'.repeat(43)}`,
+  ]) {
+    let out
+    try {
+      out = await decodeModerationUnverified(bad)
+    } catch (err) {
+      throw new Error(`threw on ${JSON.stringify(bad)}: ${err}`)
+    }
+    assert(out === null, `expected null for ${JSON.stringify(bad)}, got ${JSON.stringify(out)}`)
+  }
+})
+
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)
