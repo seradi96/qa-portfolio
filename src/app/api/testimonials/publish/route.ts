@@ -201,6 +201,10 @@ export async function POST(req: Request): Promise<Response> {
     // tag, then gunzip — both inside verifyModerationToken.
     const signed = verifyModerationToken(body.t, modSecret)
     if (signed === null) {
+      // Could be either a forged signature or a valid signature with invalid shape.
+      // The vague error message is intentional (do not tell a forger which check failed),
+      // but the server should log to distinguish them later if needed.
+      console.error('[testimonials/publish] verification failed: signature or shape mismatch')
       return json({ error: 'This approval link is not valid.' }, 403)
     }
 
@@ -225,9 +229,14 @@ export async function POST(req: Request): Promise<Response> {
     try {
       result = await publishTestimonial(record)
     } catch (err) {
+      // The message from ghError includes status, statusText, and response body (first 500
+      // chars). None of these ever echo the Authorization header, and Node/undici never
+      // surface request headers in error.message. The message is safe to log and is the only
+      // thing that can distinguish a revoked token (401) from a renamed repo (404) from a
+      // network timeout. See ghError() in src/lib/publish-to-git.ts for the message format.
       console.error(
         '[testimonials/publish] github failed:',
-        err instanceof Error ? err.name : typeof err,
+        err instanceof Error ? err.message : typeof err,
       )
       return json(
         {
