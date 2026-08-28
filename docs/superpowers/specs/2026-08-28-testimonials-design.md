@@ -688,7 +688,9 @@ exchange for a control the invite link already provides.
 | `src/lib/testimonials.ts` | `Testimonial` type, validate-and-drop loader, exports `TESTIMONIALS` |
 | `src/lib/projects-meta.ts` | `PROJECT_SLUGS`, `ProjectSlug`, `PROJECT_LABELS` — the single slug allowlist |
 | `src/lib/consent.ts` | `CONSENT_VERSION` + `CONSENT_TEXT_V1` verbatim |
-| `src/lib/token.ts` | `U+001F` encode/decode, gzip, HMAC sign/verify with `i1`/`m1` domain tags, length-guarded `timingSafeEqual`, hardcoded `SITE_ORIGIN`, module-load secret-length assertion, `typeof window` throw |
+| `src/lib/token-types.ts` | Isomorphic and pure: the `U+001F` field codec, base64url, `InviteFields`/`TestimonialRecord`. No node builtins, no secrets |
+| `src/lib/token.ts` | **Server only.** gzip + HMAC sign/verify with `i1`/`m1` domain tags, length-guarded `timingSafeEqual`, hardcoded `SITE_ORIGIN`, module-load secret-length assertion, `typeof window` throw |
+| `src/lib/token-client.ts` | **Client safe.** Unverified decode for the two pages that must read a fragment in the browser; gunzip via `DecompressionStream`. Holds no secret and checks no signature |
 | `src/lib/sanitize.ts` | NFC, control/bidi/zero-width stripping, `Intl.Segmenter` grapheme caps, identity allowlist, LinkedIn-slug extraction. Pure, zero deps, no secrets |
 | `src/lib/notify.ts` | `sendModerationEmail` via raw `fetch` to Resend; plain text; CR/LF stripped from subject inputs |
 | `src/lib/publish-to-git.ts` | GitHub API: read `main`, create `testimonial/<id>`, PUT file, open pull request; idempotent by `id`; one retry on 409 |
@@ -718,9 +720,16 @@ exchange for a control the invite link already provides.
 | `src/app/layout.tsx` | One line: `"@id": "https://aserban.ro/#person"` in `personJsonLd` |
 | `package.json` | Scripts: `invite`, `check:tokens`, `postbuild`. **No new dependencies.** |
 | `.gitignore` | Add `!.env.local.example` immediately after line 34 (`.env*`). Without it `git add -A` skips the file silently and an explicit `git add` fails outright. The negation un-ignores only the example; real `.env.local` stays ignored |
+| `tsconfig.json` | Add `allowImportingTsExtensions: true` after line 16. Verified on Node 24.5.0: Node's ESM resolver does no extension resolution, so `check:tokens` can only load a `.ts` module by its explicit `.ts` specifier, and tsc rejects that spelling (TS5097) without this flag. It requires `noEmit`, already set at line 12 |
 | `eslint.config.mjs` | Add `scripts/**` to `ignores` (commit 5). **Cosmetic only** — ESLint 9 lints `scripts/**/*.mjs` by default and reports `@typescript-eslint/no-unused-vars` there as a *warning*, so `npm run lint` exits 0 either way |
 | `CLAUDE.md` | Second content source; nav labels in two places; the four env vars; `cacheComponents` deliberately off and `'use cache'` unavailable; never `runtime = 'edge'`; `output: 'export'` foreclosed; no `Review` JSON-LD, with the reason; correct the Tailwind row (says 4.1.18, installed is 4.3.0) |
 | `docs/superpowers/plans/2026-06-27-card-surface-system.md` | Re-anchor Tasks 5–8 to grep patterns instead of line numbers — 28 `page.tsx` references, already ~50 lines stale and ~200 after this insertion; mark Task 1 done |
+
+**Refinement discovered during planning.** §16 originally listed a single `src/lib/token.ts`. It cannot
+be one module: `token.ts` is server-only and throws in a browser, yet both `/invite` (to prefill the
+form) and `/moderate` (to render the preview) must decode a fragment client-side. Splitting it three
+ways keeps the server crypto unreachable from the client bundle while letting both pages decode
+*without* a secret — verification stays server-side, where the secret is.
 
 ### Environment variables (Vercel, Production only)
 
