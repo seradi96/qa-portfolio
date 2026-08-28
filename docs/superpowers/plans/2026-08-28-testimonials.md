@@ -609,7 +609,7 @@ export const CAPS = {
   whatIDid: 300,
   whatChanged: 400,
   hiringManager: 400,
-  anythingElse: 550,
+  anythingElse: 700,
   name: 80,
   role: 80,
   company: 80,

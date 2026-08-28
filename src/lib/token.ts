@@ -26,7 +26,17 @@ if (typeof window !== 'undefined') {
 
 export const SITE_ORIGIN = 'https://aserban.ro'
 export const INVITE_TTL_DAYS = 45
-export const MAX_MODERATION_URL_CHARS = 1900
+// Not sized against Outlook or any general email client. Spec section 8 constrains the recipient
+// absolutely: Resend's sandbox sender can only deliver to the Resend account's own signup
+// address, so this URL only ever has to survive transit to the owner's Gmail and render in a
+// Gmail / mobile-browser tap-through — both handle URLs many times this size. If the moderation
+// recipient ever widens (a verified sending domain routing elsewhere, a second moderator's own
+// inbox), this number must be revisited under that client's real limits, not this one's.
+// Second, unverified until a real send: at ~2000 characters this URL exceeds RFC 5322's
+// 998-octet line limit and survives only because MIME transfer encoding folds it with soft
+// breaks the client removes on render — the live rehearsal (spec section 18.4) checks this by
+// tapping the link rather than retyping it, because it cannot be checked any other way.
+export const MAX_MODERATION_URL_CHARS = 2400
 
 const MIN_SECRET_CHARS = 32
 const MAX_RECORD_BYTES = 65536

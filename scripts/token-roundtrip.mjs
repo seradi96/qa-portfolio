@@ -395,16 +395,20 @@ const PROSE = {
 // Romanian ABSOLUTE MAXIMUM, not a realistic submission and not a translation of PROSE above —
 // four independently written, high-entropy passages (varied vocabulary, real place names —
 // Bucuresti, Cluj-Napoca, Timisoara, Iasi, Brasov, Constanta, Viena, Munchen, Frankfurt,
-// Stuttgart — few repeated phrases) so gzip cannot find the easy wins repeated sentences give
-// it. This is the case that actually overflowed at the old cap: at anythingElse 700 this exact
-// shape of fixture measured over MAX_MODERATION_URL_CHARS, which is why CAPS.anythingElse in
-// src/lib/sanitize.ts is 550, not 700. Diacritics cost two UTF-8 bytes each pre-gzip, and this
-// project's own colleagues are Romanian and German, so this is the worst case worth pinning, not
-// the English one. Each passage is written long enough to already meet its cap in code units,
-// same discipline as PROSE above, so toCap only ever slices here — it never doubles, because
-// doubling a paragraph lets gzip crush it and the measurement stops meaning anything (this
-// mistake was made once measuring an earlier version of this exact fixture: 740 chars instead of
-// the real figure, because a doubled paragraph compresses far better than natural prose does).
+// Stuttgart — few repeated phrases) so gzip cannot find the easy wins repeated sentences give it.
+// This exact shape of fixture is what exposed that MAX_MODERATION_URL_CHARS itself was wrong: at
+// the old budget of 1900 it measured over, which first led to lowering CAPS.anythingElse to 550 —
+// but the 1900 ceiling came from Outlook, which is never in the delivery path (spec section 8:
+// Resend's sandbox sender can only reach the owner's own Gmail). The budget is 2400 and
+// anythingElse is back to 700 in src/lib/sanitize.ts; this fixture is unchanged and still the
+// worst case worth pinning, now against the corrected budget. Diacritics cost two UTF-8 bytes
+// each pre-gzip, and this project's own colleagues are Romanian and German, so Romanian, not
+// English, is that worst case. Each passage is written long enough to already meet its cap in
+// code units, same discipline as PROSE above, so toCap only ever slices here — it never doubles,
+// because doubling a paragraph lets gzip crush it and the measurement stops meaning anything
+// (this mistake was made once measuring an earlier version of this exact fixture: 740 chars
+// instead of the real figure, because a doubled paragraph compresses far better than natural
+// prose does).
 const PROSE_RO_MAX = {
   whatIDid:
     'A coordonat migrarea suitei de regresie din Selenium către Playwright pe durata a trei sprinturi, cu echipe distribuite între București, Cluj-Napoca și Hamburg. A construit un raportor propriu peste Allure, a integrat Grafana pentru urmărirea flakiness-ului și a documentat totul într-un wiki Confluence pe care noii angajați îl parcurg în prima săptămână, nu în a treia lună ca înainte.',
@@ -493,22 +497,22 @@ console.log(
 check('natural-language answers at every cap fit the moderation URL', () => {
   assert(
     naturalUrl.length <= MAX_MODERATION_URL_CHARS,
-    `natural-language worst case is ${naturalUrl.length} chars, over the ${MAX_MODERATION_URL_CHARS} budget. Lower a cap in CAPS, or raise MAX_MODERATION_URL_CHARS knowing Outlook truncates around 2000.`,
+    `natural-language worst case is ${naturalUrl.length} chars, over the ${MAX_MODERATION_URL_CHARS} budget. Lower a cap in CAPS, or raise MAX_MODERATION_URL_CHARS — but only after confirming the moderation recipient is still Gmail-only (spec section 8); this budget is not sized against a general email client.`,
   )
 })
 
-// This is not the realistic case any more — it is the LEGAL MAXIMUM the form allows, because the
-// legal maximum is what overflowed. At the original CAPS.anythingElse of 700, a fixture shaped
-// exactly like this one (every field at its cap, a 60-char encoded slug, high-entropy Romanian
-// prose gzip cannot flatten) went over MAX_MODERATION_URL_CHARS — a Romanian colleague thorough
-// enough to fill in every field would have gotten a 413 after writing a page and a half. That is
-// why anythingElse is 550 in src/lib/sanitize.ts, not 700. A future cap raise that only re-checks
-// the English assertion above can still reintroduce that failure — this assertion is what makes
-// it visible before a real thorough submitter finds it.
+// This is not the realistic case any more — it is the LEGAL MAXIMUM the form allows: every answer
+// at its cap, name/role/company each at 80 graphemes, a 60-character encoded slug, all at once.
+// Measuring this exact shape is what first caught MAX_MODERATION_URL_CHARS being wrong (it was
+// 1900, sized against Outlook, which is never in the delivery path — spec section 8). The budget
+// is now 2400 and anythingElse is back to 700 in src/lib/sanitize.ts; this assertion still exists
+// because a future cap raise, or a future narrowing of MAX_MODERATION_URL_CHARS, should not be
+// able to silently reintroduce a 413 for a real thorough Romanian submitter — this is what makes
+// that regression visible before they find it.
 check('Romanian answers at every cap, including a 60-char encoded slug, fit the moderation URL (absolute maximum)', () => {
   assert(
     romanianUrlMax.length <= MAX_MODERATION_URL_CHARS,
-    `Romanian absolute-maximum case is ${romanianUrlMax.length} chars, over the ${MAX_MODERATION_URL_CHARS} budget. Lower a cap in CAPS, or raise MAX_MODERATION_URL_CHARS knowing Outlook truncates around 2000.`,
+    `Romanian absolute-maximum case is ${romanianUrlMax.length} chars, over the ${MAX_MODERATION_URL_CHARS} budget. Lower a cap in CAPS, or raise MAX_MODERATION_URL_CHARS — but only after confirming the moderation recipient is still Gmail-only (spec section 8); this budget is not sized against a general email client.`,
   )
 })
 
