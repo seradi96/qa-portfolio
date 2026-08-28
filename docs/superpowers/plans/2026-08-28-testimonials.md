@@ -4880,6 +4880,14 @@ git commit -m "feat(testimonials): invite page with expiry gate and the submissi
 
 ### Task 13: `/moderate` — the server shell and the moderation panel
 
+> **Superseded in one place — read this first.** The listing below calls
+> `decodeModerationUnverified(token)` with the bare token. **That always returns `null`**, because
+> the function re-derives `t` itself via `URLSearchParams(stripHash(fragment))` (see
+> `src/lib/token-client.ts:30`) and so needs the WHOLE fragment. As written, every valid moderation
+> link would have shown the unreadable-link message. The shipped code passes `hash`, and keeps the
+> bare `token` only for the POST body, which is what `verifyModerationToken` actually takes.
+> `src/app/moderate/ModeratePanel.tsx` is authoritative.
+
 **Files:**
 - Create: `src/app/moderate/layout.tsx`
 - Create: `src/app/moderate/page.tsx`
