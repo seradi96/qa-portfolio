@@ -82,6 +82,7 @@ export const viewport: Viewport = {
 const personJsonLd = {
   "@context": "https://schema.org",
   "@type": "Person",
+  "@id": "https://aserban.ro/#person",
   name: "Șerban Andrei",
   alternateName: "Andrei Șerban",
   jobTitle: "Senior QA Automation Engineer & Test Architect",

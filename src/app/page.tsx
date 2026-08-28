@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react'
 import { MapPinIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import { BriefcaseIcon } from '@heroicons/react/24/solid'
 import { QA_CAREER_START, PLAYWRIGHT_START, KARATE_START, getYearsSince } from '@/lib/career'
+import type { ProjectSlug } from '@/lib/projects-meta'
+import { TESTIMONIALS } from '@/lib/testimonials'
+import TestimonialsSection from '@/components/TestimonialsSection'
 
 type SubProject = {
   name: string
@@ -65,6 +68,7 @@ export default function Portfolio() {
   const projects = [
     {
  title: "Deutsche Bahn - SAP ERP Integrated Railway Management System QA Automation Framework",
+ slug: 'deutsche-bahn' satisfies ProjectSlug,
   description: "Prevented €2M+ in potential system failures through proactive defect detection for Europe's largest transportation network. Reduced testing cycles by 40% while maintaining zero-tolerance safety standards for 2+ billion annual passengers. Led digital transformation of critical railway infrastructure supporting Germany's €40B transportation modernization program.",
  technologies: [
    "Angular",
@@ -142,6 +146,7 @@ export default function Portfolio() {
 },
    {
   title: "TOKERO QA Automation Platform",
+  slug: 'tokero' satisfies ProjectSlug,
   description: "Sole architect and maintainer of the QA stack at TOKERO (European crypto exchange): a Playwright functional framework in production since 2025, plus an NBomber performance suite and a custom Blazor reporting platform — both shipped to production in 2026. Owned end-to-end from July 2025 until the engagement concluded in August 2026, with all three systems handed over running in production.",
   technologies: [
     "Playwright",
@@ -229,6 +234,7 @@ export default function Portfolio() {
 },
  {
   title: "DentsplySirona - Medical Device CAD/CAM Software Testing & QA Leadership",
+  slug: 'dentsply-sirona' satisfies ProjectSlug,
   description: "Led precision testing for medical manufacturing systems ensuring ±0.001mm accuracy standards. Delivered 100% on-time deliverables as interim team lead during critical product launches. Resolved 65+ critical defects with 99% clarity, reducing developer resolution time by 40% for CAD/CAM workflows.",
   technologies: [
     "CAD/CAM Testing",
@@ -268,6 +274,7 @@ export default function Portfolio() {
 },
     {
   title: "Happy Media - Full-Stack Development & Digital Campaign Management Platform",
+  slug: 'happy-media' satisfies ProjectSlug,
   description: "Increased client acquisition rates by 35% and reduced manual work by 80% through quality-focused development. Maintained 99.9% uptime for Romania's leading advertising agency. Built scalable solutions that transformed 100+ SMEs from local businesses into digital market leaders across Eastern Europe.",
   technologies: [
     "WordPress",
@@ -369,6 +376,9 @@ export default function Portfolio() {
             <div className="hidden md:flex items-center space-x-8" role="navigation" aria-label="Main navigation">
               <a href="#about" className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:rounded-md px-2 py-1">About</a>
               <a href="#projects" className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:rounded-md px-2 py-1">Projects</a>
+              {TESTIMONIALS.length > 0 && (
+                <a href="#testimonials" className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:rounded-md px-2 py-1">Testimonials</a>
+              )}
               <a href="#architecture" className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:rounded-md px-2 py-1">Architecture</a>
               <a href="#skills" className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:rounded-md px-2 py-1">Skills</a>
               <a href="#contact" className="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:rounded-md px-2 py-1">Contact</a>
@@ -409,6 +419,15 @@ export default function Portfolio() {
                 >
                   Projects
                 </a>
+                {TESTIMONIALS.length > 0 && (
+                  <a
+                    href="#testimonials"
+                    className="transition-colors py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:rounded-md px-2 text-gray-300 hover:text-white"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Testimonials
+                  </a>
+                )}
                 <a
                   href="#architecture"
                   className="transition-colors py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:rounded-md px-2 text-gray-300 hover:text-white"
@@ -886,7 +905,7 @@ export default function Portfolio() {
           {/* Compact Project Grid */}
           <div className="grid md:grid-cols-2 gap-6">
             {filteredProjects.map((project) => {
-              const originalIndex = projects.findIndex(p => p.title === project.title)
+              const originalIndex = projects.findIndex(p => p.slug === project.slug)
               const isLiveStatus = project.status === 'Ongoing'
 
               return (
@@ -1107,6 +1126,9 @@ export default function Portfolio() {
           </div>
         </div>
       </section>
+
+      {/* Testimonials Section — renders nothing until the first testimonial is published */}
+      <TestimonialsSection />
 
       {/* Architecture & Approach Section */}
       <section id="architecture" className="py-20 px-4 sm:px-6 bg-black/10">
