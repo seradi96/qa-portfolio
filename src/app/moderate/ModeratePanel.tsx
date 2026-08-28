@@ -298,14 +298,20 @@ export default function ModeratePanel() {
       return (
         <Shell>
           <h1 className="text-3xl font-bold text-white">Pull request already open.</h1>
+          <p className="mt-6 text-gray-300">
+            Review it, merge it, and it is live about 90 seconds later.
+          </p>
           <a
             href={result.prUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-8 inline-block rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 px-6 py-4 text-base font-semibold text-gray-900 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black"
           >
-            Open it →
+            Open the pull request →
           </a>
+          <div className="mt-10">
+            <CopyBlock text={followUpMessage(phase.record)} />
+          </div>
         </Shell>
       )
     }
