@@ -5,6 +5,7 @@
 // no build step and no duplicated JS copy of the code under test.
 
 import { isDeepStrictEqual } from 'node:util'
+import { randomBytes } from 'node:crypto'
 
 const [major, minor] = process.versions.node.split('.').map(Number)
 if (major < 22 || (major === 22 && minor < 18)) {
@@ -250,6 +251,202 @@ check('extractLinkedinSlug refuses anything that is not a LinkedIn profile', () 
   assertFieldError('linkedinSlug', () => extractLinkedinSlug('ab'), 'too short')
   assertFieldError('linkedinSlug', () => extractLinkedinSlug('x'.repeat(61)), 'too long')
   assertFieldError('linkedinSlug', () => extractLinkedinSlug(42), 'not a string')
+})
+
+// --- token crypto ------------------------------------------------------------
+// src/lib/token.ts asserts both secrets at module load, so they must exist before the dynamic
+// import below. These are test values; they never leave this file and are not the real secrets.
+const INVITE_SECRET = 'check-tokens-invite-secret-0123456789'
+const MOD_SECRET = 'check-tokens-moderation-secret-0123456789'
+process.env.INVITE_SECRET = INVITE_SECRET
+process.env.MOD_SECRET = MOD_SECRET
+
+const {
+  SITE_ORIGIN,
+  INVITE_TTL_DAYS,
+  MAX_MODERATION_URL_CHARS,
+  assertSecret,
+  signInviteToken,
+  verifyInviteToken,
+  signModerationToken,
+  verifyModerationToken,
+} = await import('../src/lib/token.ts')
+
+// `invite` is already declared above (invite field codec section) with this exact shape and
+// value — reused here rather than redeclared, which would be a SyntaxError at module scope.
+const record = {
+  id: 'aB3xK9pQr7Zt',
+  projectSlug: 'tokero',
+  publishedAt: '2026-09-14',
+  submittedAt: '2026-09-13',
+  consent: { version: 1, at: '2026-09-13T18:42:07Z' },
+  author: {
+    name: 'Maria Popescu',
+    role: 'QA Lead',
+    company: 'TOKERO',
+    linkedinSlug: 'maria-popescu-8a41b2',
+  },
+  answers: {
+    whatIDid: 'He owned the end-to-end suite.',
+    whatChanged: 'Regression went from two days of clicking to an overnight run.',
+    hiringManager: 'I would work with him again. He pushes back when the plan is wrong.',
+    anythingElse: '',
+  },
+}
+
+// 1 — round trip
+check('invite and moderation tokens survive a full round trip', () => {
+  assertDeepEqual(
+    verifyInviteToken(signInviteToken(invite, INVITE_SECRET), INVITE_SECRET),
+    invite,
+    'invite round trip lost data',
+  )
+  assertDeepEqual(
+    verifyModerationToken(signModerationToken(record, MOD_SECRET), MOD_SECRET),
+    record,
+    'moderation round trip lost data',
+  )
+  assert(SITE_ORIGIN === 'https://aserban.ro', 'SITE_ORIGIN is not the hardcoded production origin')
+  assert(INVITE_TTL_DAYS === 45, `INVITE_TTL_DAYS is ${INVITE_TTL_DAYS}, expected 45`)
+})
+
+// 2 — tamper must fail
+check('a single flipped payload byte fails verification', () => {
+  for (const [label, token, secret, verify] of [
+    ['invite', signInviteToken(invite, INVITE_SECRET), INVITE_SECRET, verifyInviteToken],
+    ['moderation', signModerationToken(record, MOD_SECRET), MOD_SECRET, verifyModerationToken],
+  ]) {
+    const [payload, sig] = token.split('.')
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+    const at = Math.floor(payload.length / 2)
+    const swapped = alphabet[(alphabet.indexOf(payload[at]) + 1) % alphabet.length]
+    const tampered = `${payload.slice(0, at)}${swapped}${payload.slice(at + 1)}.${sig}`
+    assert(tampered !== token, `${label}: the tamper did not change the token`)
+    assert(verify(tampered, secret) === null, `${label}: a tampered payload verified`)
+  }
+})
+
+// 3 — wrong domain must fail
+check('a token signed under i1 never verifies under m1', () => {
+  assert(
+    verifyModerationToken(signInviteToken(invite, MOD_SECRET), MOD_SECRET) === null,
+    'an i1 token verified as m1',
+  )
+  assert(
+    verifyInviteToken(signModerationToken(record, INVITE_SECRET), INVITE_SECRET) === null,
+    'an m1 token verified as i1',
+  )
+})
+
+// 4 — empty secret must throw
+check('an empty, short or missing secret throws', () => {
+  for (const bad of [undefined, '', 'short', 'x'.repeat(31)]) {
+    let threw = false
+    try {
+      assertSecret('INVITE_SECRET', bad)
+    } catch {
+      threw = true
+    }
+    assert(threw, `assertSecret accepted ${JSON.stringify(bad)}`)
+  }
+  assert(
+    assertSecret('INVITE_SECRET', 'y'.repeat(32)) === 'y'.repeat(32),
+    'a 32-character secret was rejected',
+  )
+  let signThrew = false
+  try {
+    signInviteToken(invite, '')
+  } catch {
+    signThrew = true
+  }
+  assert(signThrew, 'signInviteToken signed with an empty secret')
+})
+
+// 5 — wrong-length signature must be null, not RangeError
+check('a wrong-length signature returns null instead of throwing RangeError', () => {
+  const [payload] = signInviteToken(invite, INVITE_SECRET).split('.')
+  for (const sig of ['A', 'AA', 'A'.repeat(43), 'A'.repeat(86)]) {
+    let result
+    try {
+      result = verifyInviteToken(`${payload}.${sig}`, INVITE_SECRET)
+    } catch (err) {
+      throw new Error(`verifyInviteToken threw on a ${sig.length}-char signature: ${err}`)
+    }
+    assert(result === null, `a ${sig.length}-char signature verified`)
+  }
+})
+
+// 6 — URL budget
+// Caps are read from CAPS, never retyped: raising a cap must move these numbers.
+// CAPS is already destructured above (sanitize section) from the same module — reused here
+// rather than re-imported, which would be a SyntaxError at module scope.
+
+const PROSE = {
+  whatIDid:
+    'He owned the end-to-end suite from the first spec through to the pipeline that ran it, and he was the person we pinged when a build went red at six in the evening. He wrote the framework, reviewed our page objects, and taught two of us how to debug a flaky test without guessing at it.',
+  whatChanged:
+    'Regression used to eat two days of manual clicking before every release and we still shipped with our fingers crossed. After his framework landed it ran overnight on every merge, we saw failures at nine in the morning with a trace attached, and the release meeting stopped being an argument about whether anyone had actually tested the payment flow properly on a real device this time.',
+  hiringManager:
+    'I would work with him again without thinking about it. He will push back if he believes the plan is wrong, which is exactly what you want from someone who owns quality, and he does it with evidence in hand rather than an opinion. He is also the rare automation engineer who writes documentation that other people on the team can actually follow a year later without asking him.',
+  anythingElse:
+    'The thing I remember is the week the payment provider changed a response field without telling anyone. His suite caught it in the overnight run, he had the failing trace and a one paragraph explanation in our channel before the standup, and the fix shipped that afternoon instead of being discovered by a customer. Nobody outside the team ever knew. He also refused to let us mark that test as flaky and skip it, which in hindsight is the only reason it was still running at all. That is the part people miss about test automation: the value is not the tests you write, it is the ones you keep honest for two years after everybody who first wrote them has moved on to some other team.',
+}
+
+const toCap = (text, cap) => (text.length >= cap ? text.slice(0, cap) : `${text} ${text}`.slice(0, cap))
+const noise = (n) => randomBytes(n * 2).toString('base64').replace(/[+/=]/g, 'A').slice(0, n)
+
+function moderationUrlFor(answers, author) {
+  const token = signModerationToken({ ...record, answers, author }, MOD_SECRET)
+  return `${SITE_ORIGIN}/moderate#a=publish&t=${token}`
+}
+
+const naturalUrl = moderationUrlFor(
+  {
+    whatIDid: toCap(PROSE.whatIDid, CAPS.whatIDid),
+    whatChanged: toCap(PROSE.whatChanged, CAPS.whatChanged),
+    hiringManager: toCap(PROSE.hiringManager, CAPS.hiringManager),
+    anythingElse: toCap(PROSE.anythingElse, CAPS.anythingElse),
+  },
+  {
+    name: toCap('Maria Alexandra Popescu-Ionescu', CAPS.name),
+    role: toCap('Senior Quality Assurance Engineer, Payments', CAPS.role),
+    company: toCap('Deutsche Bahn Vertrieb GmbH', CAPS.company),
+    linkedinSlug: 'maria-popescu-8a41b2',
+  },
+)
+
+const noiseUrl = moderationUrlFor(
+  {
+    whatIDid: noise(CAPS.whatIDid),
+    whatChanged: noise(CAPS.whatChanged),
+    hiringManager: noise(CAPS.hiringManager),
+    anythingElse: noise(CAPS.anythingElse),
+  },
+  {
+    name: noise(CAPS.name),
+    role: noise(CAPS.role),
+    company: noise(CAPS.company),
+    linkedinSlug: noise(60),
+  },
+)
+
+console.log(
+  `      URL budget ${MAX_MODERATION_URL_CHARS}: natural language at every cap = ${naturalUrl.length} chars ` +
+    `(${MAX_MODERATION_URL_CHARS - naturalUrl.length} spare), incompressible at every cap = ${noiseUrl.length} chars`,
+)
+
+check('natural-language answers at every cap fit the moderation URL', () => {
+  assert(
+    naturalUrl.length <= MAX_MODERATION_URL_CHARS,
+    `natural-language worst case is ${naturalUrl.length} chars, over the ${MAX_MODERATION_URL_CHARS} budget. Lower a cap in CAPS, or raise MAX_MODERATION_URL_CHARS knowing Outlook truncates around 2000.`,
+  )
+})
+
+check('incompressible answers at every cap overflow the budget, which is what the 413 is for', () => {
+  assert(
+    noiseUrl.length > MAX_MODERATION_URL_CHARS,
+    `incompressible worst case now fits (${noiseUrl.length} chars). Caps must have been lowered — /api/testimonials/submit can drop its 413 branch, and this check should be deleted with it.`,
+  )
 })
 
 console.log(`\n${passed} passed, ${failed} failed`)
