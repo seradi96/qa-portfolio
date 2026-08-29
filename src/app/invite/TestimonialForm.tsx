@@ -160,10 +160,9 @@ function readErrorBody(body: unknown): { field?: string; message?: string } {
   if (typeof body !== 'object' || body === null) return {}
   const r = body as { field?: unknown; message?: unknown; error?: unknown }
   // /api/testimonials/submit is internally consistent, not uniform: 422 sends
-  // { field, message } (route.ts's FieldError branch), but every other rejection — including
-  // the 413s, which are the ones that carry a computed "trim by N characters" figure — sends
-  // { error }. Reading `message` first and falling back to `error` is what makes that number
-  // actually reach the submitter instead of always falling through to the generic 413 copy below.
+  // { field, message } (route.ts's FieldError branch), every other rejection sends { error }.
+  // Reading `message` first and falling back to `error` is what makes the server's own wording
+  // reach the submitter instead of always falling through to the generic copy below.
   const message =
     typeof r.message === 'string' ? r.message : typeof r.error === 'string' ? r.error : undefined
   return {
@@ -179,12 +178,6 @@ function messageForStatus(status: number, fromServer: string | undefined): strin
   if (status === 410) {
     return 'This invite expired while the page was open. Nothing you wrote is lost — ask Andrei for a fresh link and it will still be here.'
   }
-  if (status === 413) {
-    return (
-      fromServer ??
-      'There is a little more text than fits in one link. Trimming the longest answer by a few sentences will do it.'
-    )
-  }
   if (status === 422) {
     return fromServer ?? 'One of the fields came back rejected. Have a look and try again.'
   }
@@ -192,7 +185,7 @@ function messageForStatus(status: number, fromServer: string | undefined): strin
     return 'Something did not make it across intact. Try tapping Send once more.'
   }
   if (status === 503) {
-    return 'The email did not go out, so Andrei has not seen this yet. Nothing was lost — wait a moment and tap Send again.'
+    return 'This did not save, so Andrei has not seen it yet. Nothing was lost — wait a moment and tap Send again.'
   }
   return `Something went wrong at Andrei's end (${status}). Nothing was lost — try again in a minute, or email ${OWNER_EMAIL}.`
 }
@@ -631,10 +624,9 @@ export default function TestimonialForm({
               you&apos;re saying yes, and for no other reason. Saying no costs you nothing.
             </p>
             <p>
-              <strong className="text-gray-300">Where it lives</strong> &mdash; until you approve
-              nothing is stored anywhere; your submission arrives in my personal Gmail so I can read
-              it. If I publish it, it goes into this site&apos;s public repository. If I don&apos;t, I
-              delete the email and nothing remains.
+              <strong className="text-gray-300">Where it lives</strong> &mdash; until I publish it,
+              your submission sits in a private store only I can read. If I publish it, it goes into
+              this site&apos;s public repository. If I don&apos;t, I delete it and nothing remains.
             </p>
             <p>
               <strong className="text-gray-300">Your say</strong> &mdash; ask me to correct it or take

@@ -2,9 +2,10 @@
  * SERVER ONLY. Publishes an approved testimonial as a branch + pull request.
  * Zero dependencies: plain fetch against the GitHub REST API.
  *
- * Never writes to main. Every application-initiated wrong write — a replayed
- * moderation token, a bug in here — lands as an unmerged pull request with its own
- * Vercel preview instead of on production.
+ * Never writes to main. Every application-initiated wrong write — a forged admin
+ * session cookie, a bug in here — lands as an unmerged pull request with its own
+ * Vercel preview instead of on production. publishTestimonial is reachable only from
+ * /api/admin/publish, which verifies that session before ever calling in here.
  */
 import { Buffer } from 'node:buffer'
 import { assertSecret } from '@/lib/token'

@@ -189,8 +189,9 @@ export async function POST(req: Request): Promise<Response> {
       id: randomBytes(9).toString('base64url'),
       projectSlug: submittedSlug,
       // Provisional only. §5: publishedAt is stamped when the pull request is
-      // OPENED, so /api/testimonials/publish overwrites this. It exists here so the
-      // moderation preview renders a plausible date through the real card.
+      // OPENED, so /api/admin/publish overwrites this before calling publishTestimonial.
+      // It exists here so the /admin pending queue renders a plausible date through the
+      // real card.
       publishedAt: day,
       submittedAt: day,
       consent: { version: CONSENT_VERSION, at: consentAt },
