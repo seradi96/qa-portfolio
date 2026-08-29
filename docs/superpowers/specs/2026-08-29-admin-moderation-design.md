@@ -238,9 +238,21 @@ It becomes:
 
 > **Where it lives** — until I publish it, your submission sits in a private store only I
 > can read. If I publish it, it goes into this site's public repository. If I don't, I
-> delete it and nothing remains.
+> delete it from that store. A copy stays in that store's private history, which nobody but
+> me can see — ask me and I will wipe that too.
 
-Shorter, and still true.
+**Corrected after review.** The first draft of this paragraph ended "I delete it and nothing
+remains", and this section called that "shorter, and still true". It was not true, and §11 five
+lines below said so in the same breath — it stated that the deleted content survives in the private
+repo's git history and that "the privacy note no longer promises otherwise", when the note's literal
+words were exactly that promise. Two halves of one document contradicting each other, and the wrong
+half shipped as live Article 13 text.
+
+`deletePending` issues a Contents API DELETE, which removes the file from the tip of the private
+repository. It does not rewrite that repository's history. The wording above says so in language
+somebody who does not use git will follow, names who can see the history, and offers the wipe on
+request — which is their Article 17 right, and is what makes the paragraph reassuring rather than
+alarming. Anyone editing it later must keep all three of those properties.
 
 ## 11. Residual risks, accepted
 
