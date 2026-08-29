@@ -9,7 +9,7 @@
  */
 import { Buffer } from 'node:buffer'
 import { assertSecret } from '@/lib/token'
-import { isTestimonial } from '@/lib/testimonials'
+import { ID_RE, descending, isTestimonial } from '@/lib/testimonials'
 import type { TestimonialRecord } from '@/lib/token-types'
 
 // Hardcoded, exactly as OWNER/REPO/BASE_BRANCH are in publish-to-git.ts:19-21, and for the same
@@ -20,10 +20,11 @@ const PENDING_REPO = 'qa-portfolio-pending'
 const PENDING_DIR = 'pending'
 const API = `https://api.github.com/repos/${OWNER}/${PENDING_REPO}`
 
-// The id the submit route mints: randomBytes(9).toString('base64url'), which is exactly 12
-// base64url characters. Same shape as ID_RE in testimonials.ts. Checked before an id is ever
-// interpolated into a URL path, so `..` and `%2e%2e` cannot reach GitHub's contents API.
-const ID_RE = /^[A-Za-z0-9_-]{12}$/
+// ID_RE is imported, not redefined: it is the id the submit route mints — randomBytes(9)
+// .toString('base64url'), exactly 12 base64url characters — and it is checked before an id is
+// ever interpolated into a URL path, so `..` and `%2e%2e` cannot reach GitHub's contents API.
+// A second copy of this regex would be free to drift from testimonials.ts's, the same risk the
+// isTestimonial import below already avoids.
 
 function ghHeaders(token: string, withJsonBody: boolean): Record<string, string> {
   const h: Record<string, string> = {
@@ -39,9 +40,12 @@ function ghHeaders(token: string, withJsonBody: boolean): Record<string, string>
 /** Returned, not thrown, so call sites can `throw await ghError(...)` and TypeScript sees the
  *  control flow end there. Same helper shape as publish-to-git.ts — deliberately duplicated
  *  rather than shared, because that module's copy is module-private and points at a different
- *  repository; exporting it would widen a file whose surface is intentionally two symbols. */
-async function ghError(what: string, res: Response): Promise<Error> {
-  const body = await res.text().catch(() => '')
+ *  repository; exporting it would widen a file whose surface is intentionally two symbols.
+ *  `preReadBody` lets a caller that already consumed the response stream (to inspect the body
+ *  before deciding whether to throw) hand that text back in, since a Response body can only be
+ *  read once — same reason publish-to-git.ts's copy takes the same parameter. */
+async function ghError(what: string, res: Response, preReadBody?: string): Promise<Error> {
+  const body = preReadBody ?? (await res.text().catch(() => ''))
   return new Error(`GitHub ${what} failed: ${res.status} ${res.statusText} ${body.slice(0, 500)}`)
 }
 
@@ -110,12 +114,6 @@ function parseRecord(path: string, text: string): TestimonialRecord | null {
     return null
   }
   return parsed
-}
-
-/** Descending string compare — newest / highest first, matching testimonials.ts. */
-function descending(a: string, b: string): number {
-  if (a === b) return 0
-  return a < b ? 1 : -1
 }
 
 export async function listPending(): Promise<TestimonialRecord[]> {
@@ -217,21 +215,67 @@ export async function putPending(record: TestimonialRecord): Promise<void> {
   if (!res.ok) throw await ghError(`write ${path}`, res)
 }
 
+/**
+ * Absorbs exactly the two outcomes that mean "the file is already gone", and throws every other
+ * non-2xx (a revoked-token 403 included) with its step named.
+ *
+ * - 404: the path no longer exists — GitHub cannot find anything to delete.
+ * - 409 whose message reports a sha mismatch: our sha is stale. The only way a sha we just read
+ *   can be stale by the time this request lands is that the file has since been deleted (or
+ *   replaced) by someone else — in this store, that "someone else" is a second, overlapping
+ *   deletePending call. The message is checked, not just the status, because a 409 is GitHub's
+ *   generic conflict code and this function must not swallow a different kind of conflict under
+ *   the same number.
+ *
+ * Both cover the CONCURRENT double-tap: two calls both pass deletePending's readFile check with
+ * the same sha before either DELETE fires, so only one DELETE can actually remove the file — the
+ * other's sha is now stale against a path that no longer exists. This is distinct from the
+ * SEQUENTIAL double-tap, which deletePending's own readFile already absorbs before this function
+ * is ever called.
+ */
+async function deleteFileTolerant(token: string, path: string, sha: string): Promise<void> {
+  const res = await fetch(`${API}/contents/${path}`, {
+    method: 'DELETE',
+    headers: ghHeaders(token, true),
+    body: JSON.stringify({ message: `pending: remove ${path}`, sha }),
+  })
+  if (res.ok) return
+  if (res.status === 404) return // the path is already gone — the same end state as success
+
+  if (res.status === 409) {
+    const bodyText = await res.text().catch(() => '')
+    let message: unknown
+    try {
+      message = (JSON.parse(bodyText) as { message?: unknown }).message
+    } catch {
+      message = undefined
+    }
+    // GitHub's message for this exact case reads like "<path> does not match <sha>...". Matched
+    // on text, not just the 409 status, the same discipline publish-to-git.ts's createRef uses
+    // to tell "already exists" apart from every other reason its endpoint can answer 422.
+    if (typeof message === 'string' && /does not match/i.test(message)) return
+    throw await ghError(`delete ${path}`, res, bodyText)
+  }
+
+  throw await ghError(`delete ${path}`, res)
+}
+
 export async function deletePending(id: string): Promise<void> {
   const token = assertSecret('GITHUB_TOKEN', process.env.GITHUB_TOKEN)
   if (!ID_RE.test(id)) throw new Error(`deletePending was given a malformed id: ${id}`)
   const path = pathFor(id)
 
   // DELETE requires the blob sha of the file as it stands, so there is always a read first.
-  // A file that is already gone is a completed delete, not a failure: the owner double-tapping
-  // Reject on a slow connection must not see an error for work that succeeded.
+  //
+  // SEQUENTIAL double-tap (the owner taps Reject twice on a slow connection): the second call's
+  // readFile sees the 404 the first call's DELETE produced, and returns here — a completed
+  // delete, not a failure.
   const existing = await readFile(token, path)
   if (existing === null) return
 
-  const res = await fetch(`${API}/contents/${path}`, {
-    method: 'DELETE',
-    headers: ghHeaders(token, true),
-    body: JSON.stringify({ message: `pending: remove ${id}`, sha: existing.sha }),
-  })
-  if (!res.ok) throw await ghError(`delete ${path}`, res)
+  // CONCURRENT double-tap: both calls' readFile can complete, with the same sha, before either
+  // DELETE fires. deleteFileTolerant is what makes the loser of that race see success too — see
+  // its own doc comment for exactly which two outcomes it treats as "already gone" and why
+  // nothing else is absorbed the same way.
+  await deleteFileTolerant(token, path, existing.sha)
 }
