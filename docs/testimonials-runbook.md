@@ -167,9 +167,11 @@ both guarded by the session cookie and by the hardcoded `SITE_ORIGIN` Origin che
 - **Publish** → `POST /api/admin/publish` → re-validates every field, then a branch
   `testimonial/<id>`, a commit, and a pull request against `src/content/testimonials.json`, then
   deletes `pending/<id>.json`. Merge the PR from the GitHub mobile app. Live in ~90 seconds.
-- **Reject** → asks "Delete this submission?" once, since the pending file is the only copy of it
-  and the delete cannot be undone. Confirming calls `POST /api/admin/reject`, which deletes
-  `pending/<id>.json` and nothing else.
+- **Reject** → asks "Delete this submission?" once, since it is irreversible from the queue's
+  point of view — the file comes out and will not be published. Confirming calls
+  `POST /api/admin/reject`, which deletes `pending/<id>.json` and nothing else; as with publish,
+  a copy of that record stays in the pending repository's git history until you run the erasure
+  procedure in §8.
 
 Re-validation on publish is not redundant: the record has travelled through a store since it was
 sanitised, and passing validation once is not proof it is still well-formed. A record that fails it
@@ -178,6 +180,16 @@ comes back as a 422 and stays in the queue, untouched.
 Tapping Publish twice is safe: the second tap shows "A pull request was already open" (with a note
 that it still needs merging) if the first is unmerged, or "Already on the site" once it has been
 merged. Publishing is idempotent on the record's `id`.
+
+**Merge each pull request before pressing Publish on the next row.** That is safe only per-record —
+across two different rows it is not. Every publish cuts its branch from `main`'s current head and
+rewrites the whole of `testimonials.json`, so two Publishes against the same unmerged base produce
+two branches that each rewrite the file from the same starting point: the first merges cleanly, the
+second conflicts. Nothing is lost — git refuses the bad merge rather than silently dropping a
+record — but resolving a real conflict means hand-editing `testimonials.json` inside the merge,
+which the GitHub mobile app cannot do. If a second PR shows a conflict, merge the first one, then
+either resolve the second on a laptop or close it and press Publish again for that submission once
+the first has landed.
 
 An empty queue renders as "Nothing waiting" — the normal state, not an error. Git cannot store an
 empty directory, so the store reads a 404 from `GET /contents/pending` and returns `[]`.

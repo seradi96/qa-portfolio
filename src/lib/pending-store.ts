@@ -116,6 +116,34 @@ function parseRecord(path: string, text: string): TestimonialRecord | null {
   return parsed
 }
 
+/**
+ * Only listPending's 404 branch calls this. A 404 on the directory listing is ambiguous between
+ * two states, and this one extra request is what tells them apart: the queue is genuinely empty
+ * (THE TRAP below — git cannot store an empty directory), or the store itself is unreachable —
+ * the repository does not exist, it was renamed, or the fine-grained token's repository list no
+ * longer includes it (GitHub answers 404 rather than 403 there, so as not to confirm to an
+ * unauthorized caller that a private repo exists). getPending, putPending and deletePending never
+ * call this: each of them reads or writes a FILE path, where a 404 already means exactly "the
+ * file is gone" — a correct, self-contained outcome this check must not touch.
+ *
+ * Cost: one extra request, made only when the directory listing already read as empty, on a page
+ * the owner opens a handful of times a year. That is the right trade for not telling him the
+ * queue is empty when the store is actually broken.
+ */
+async function assertRepoIsReachable(token: string): Promise<void> {
+  const res = await fetch(API, {
+    method: 'GET',
+    headers: ghHeaders(token, false),
+    cache: 'no-store',
+  })
+  if (res.status === 200) return
+  throw new Error(
+    `pending store unreachable: GET ${OWNER}/${PENDING_REPO} answered ${res.status} ` +
+      `${res.statusText}, not 200 — the repository is missing, renamed, or invisible to this ` +
+      'token, so the pending directory\'s earlier 404 cannot be trusted as "queue is empty".',
+  )
+}
+
 export async function listPending(): Promise<TestimonialRecord[]> {
   const token = assertSecret('GITHUB_TOKEN', process.env.GITHUB_TOKEN)
   const res = await fetch(`${API}/contents/${PENDING_DIR}`, {
@@ -126,9 +154,13 @@ export async function listPending(): Promise<TestimonialRecord[]> {
 
   // THE TRAP. Git cannot store an empty directory, so the moment the last pending file is
   // published or rejected the `pending` directory stops existing and this GET returns 404.
-  // That is the EMPTY QUEUE, not an error. Treating it as an error breaks the admin page
-  // precisely when there is nothing to do, which is most of the time.
-  if (res.status === 404) return []
+  // That is the EMPTY QUEUE, not an error — but a 404 here is also what a missing, renamed, or
+  // invisible-to-the-token repository looks like, and this function cannot tell those apart on
+  // its own. assertRepoIsReachable makes the one extra request that can.
+  if (res.status === 404) {
+    await assertRepoIsReachable(token)
+    return []
+  }
   if (!res.ok) throw await ghError(`list ${PENDING_DIR}`, res)
 
   const body = (await res.json()) as unknown

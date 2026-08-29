@@ -304,8 +304,9 @@ export default function AdminList({ items }: { items: TestimonialRecord[] }) {
                   <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-4">
                     <h3 className="text-sm font-semibold text-white">Deleted</h3>
                     <p className="mt-2 text-sm text-gray-300">
-                      Removed from the pending store. Nothing was published, and that file was the
-                      only copy.
+                      Removed from the pending store. Nothing was published. A copy stays in that
+                      store&apos;s private history &mdash; see the runbook if this person ever asks
+                      you to wipe it.
                     </p>
                   </div>
                 )}
@@ -333,13 +334,17 @@ export default function AdminList({ items }: { items: TestimonialRecord[] }) {
                   </div>
                 )}
 
-                {/* Reject never fires on the first click. The pending file is the only copy of
-                    what this person wrote, and deleting it cannot be undone. */}
+                {/* Reject never fires on the first click. It is still irreversible from the
+                    queue's point of view — the file comes out and won't be published — even
+                    though deletePending's Contents API DELETE leaves a copy in the private
+                    store's git history, exactly as the /invite privacy note says and runbook §8
+                    explains how to erase. */}
                 {confirming && (
                   <div className="mt-5 rounded-xl border border-amber-400/40 bg-amber-500/10 p-4">
                     <p className="text-sm text-amber-100">
-                      Delete this submission? The pending file is the only copy of it, and this
-                      cannot be undone.
+                      Delete this submission? It comes out of the queue for good and will not be
+                      published. A copy stays in that store&apos;s private history &mdash; see the
+                      runbook if this person ever asks you to wipe it.
                     </p>
                     <div className="mt-4 flex flex-wrap gap-3">
                       <button
