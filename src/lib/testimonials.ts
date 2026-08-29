@@ -33,7 +33,7 @@ function isNonEmptyString(v: unknown): boolean {
  * Field caps are deliberately NOT re-checked here: a hand-trim that lands one grapheme over
  * a cap should still render, not vanish.
  */
-function isTestimonial(value: unknown): value is Testimonial {
+export function isTestimonial(value: unknown): value is Testimonial {
   if (!isObject(value)) return false
 
   if (!isStringMatching(value.id, ID_RE)) return false
