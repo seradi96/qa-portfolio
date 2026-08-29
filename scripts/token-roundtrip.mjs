@@ -261,60 +261,28 @@ const MOD_SECRET = 'check-tokens-moderation-secret-0123456789'
 process.env.INVITE_SECRET = INVITE_SECRET
 process.env.MOD_SECRET = MOD_SECRET
 
-const {
-  SITE_ORIGIN,
-  INVITE_TTL_DAYS,
-  MAX_MODERATION_URL_CHARS,
-  assertSecret,
-  signInviteToken,
-  verifyInviteToken,
-  signModerationToken,
-  verifyModerationToken,
-} = await import('../src/lib/token.ts')
-
-// `invite` is already declared above (invite field codec section) with this exact shape and
-// value — reused here rather than redeclared, which would be a SyntaxError at module scope.
-const record = {
-  id: 'aB3xK9pQr7Zt',
-  projectSlug: 'tokero',
-  publishedAt: '2026-09-14',
-  submittedAt: '2026-09-13',
-  consent: { version: 1, at: '2026-09-13T18:42:07Z' },
-  author: {
-    name: 'Maria Popescu',
-    role: 'QA Lead',
-    company: 'TOKERO',
-    linkedinSlug: 'maria-popescu-8a41b2',
-  },
-  answers: {
-    whatIDid: 'He owned the end-to-end suite.',
-    whatChanged: 'Regression went from two days of clicking to an overnight run.',
-    hiringManager: 'I would work with him again. He pushes back when the plan is wrong.',
-    anythingElse: '',
-  },
-}
+// `invite` is already declared above (invite field codec section) and is reused here rather than
+// redeclared, which would be a SyntaxError at module scope.
+const { SITE_ORIGIN, INVITE_TTL_DAYS, assertSecret, signInviteToken, verifyInviteToken } =
+  await import('../src/lib/token.ts')
 
 // 1 — round trip
-check('invite and moderation tokens survive a full round trip', () => {
+check('an invite token survives a full round trip', () => {
   assertDeepEqual(
     verifyInviteToken(signInviteToken(invite, INVITE_SECRET), INVITE_SECRET),
     invite,
     'invite round trip lost data',
-  )
-  assertDeepEqual(
-    verifyModerationToken(signModerationToken(record, MOD_SECRET), MOD_SECRET),
-    record,
-    'moderation round trip lost data',
   )
   assert(SITE_ORIGIN === 'https://aserban.ro', 'SITE_ORIGIN is not the hardcoded production origin')
   assert(INVITE_TTL_DAYS === 45, `INVITE_TTL_DAYS is ${INVITE_TTL_DAYS}, expected 45`)
 })
 
 // 2 — tamper must fail
+// One row in the table, not two: the m1 moderation family is gone. The table shape stays so a
+// second family can be added back as a row rather than as a rewrite.
 check('a single flipped payload byte fails verification', () => {
   for (const [label, token, secret, verify] of [
     ['invite', signInviteToken(invite, INVITE_SECRET), INVITE_SECRET, verifyInviteToken],
-    ['moderation', signModerationToken(record, MOD_SECRET), MOD_SECRET, verifyModerationToken],
   ]) {
     const [payload, sig] = token.split('.')
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
@@ -326,19 +294,12 @@ check('a single flipped payload byte fails verification', () => {
   }
 })
 
-// 3 — wrong domain must fail
-check('a token signed under i1 never verifies under m1', () => {
-  assert(
-    verifyModerationToken(signInviteToken(invite, MOD_SECRET), MOD_SECRET) === null,
-    'an i1 token verified as m1',
-  )
-  assert(
-    verifyInviteToken(signModerationToken(record, INVITE_SECRET), INVITE_SECRET) === null,
-    'an m1 token verified as i1',
-  )
-})
+// The i1-versus-m1 domain-separation assertion lived here. It went out with m1 — with a single
+// family left there is no second domain in this module to confuse. The property itself is still
+// covered, in the admin session section at the bottom of this file: "a stamp signed under the
+// invite i1 domain does not verify as a session".
 
-// 4 — empty secret must throw
+// 3 — empty secret must throw
 check('an empty, short or missing secret throws', () => {
   for (const bad of [undefined, '', 'short', 'x'.repeat(31)]) {
     let threw = false
@@ -362,7 +323,7 @@ check('an empty, short or missing secret throws', () => {
   assert(signThrew, 'signInviteToken signed with an empty secret')
 })
 
-// 5 — wrong-length signature must be null, not RangeError
+// 4 — wrong-length signature must be null, not RangeError
 check('a wrong-length signature returns null instead of throwing RangeError', () => {
   const [payload] = signInviteToken(invite, INVITE_SECRET).split('.')
   for (const sig of ['A', 'AA', 'A'.repeat(43), 'A'.repeat(86)]) {
@@ -376,156 +337,9 @@ check('a wrong-length signature returns null instead of throwing RangeError', ()
   }
 })
 
-// 6 — URL budget
-// Caps are read from CAPS, never retyped: raising a cap must move these numbers.
-// CAPS is already destructured above (sanitize section) from the same module — reused here
-// rather than re-imported, which would be a SyntaxError at module scope.
-
-const PROSE = {
-  whatIDid:
-    'He owned the end-to-end suite from the first spec through to the pipeline that ran it, and he was the person we pinged when a build went red at six in the evening. He wrote the framework, reviewed our page objects, and taught two of us how to debug a flaky test without guessing at it.',
-  whatChanged:
-    'Regression used to eat two days of manual clicking before every release and we still shipped with our fingers crossed. After his framework landed it ran overnight on every merge, we saw failures at nine in the morning with a trace attached, and the release meeting stopped being an argument about whether anyone had actually tested the payment flow properly on a real device this time.',
-  hiringManager:
-    'I would work with him again without thinking about it. He will push back if he believes the plan is wrong, which is exactly what you want from someone who owns quality, and he does it with evidence in hand rather than an opinion. He is also the rare automation engineer who writes documentation that other people on the team can actually follow a year later without asking him.',
-  anythingElse:
-    'The thing I remember is the week the payment provider changed a response field without telling anyone. His suite caught it in the overnight run, he had the failing trace and a one paragraph explanation in our channel before the standup, and the fix shipped that afternoon instead of being discovered by a customer. Nobody outside the team ever knew. He also refused to let us mark that test as flaky and skip it, which in hindsight is the only reason it was still running at all. That is the part people miss about test automation: the value is not the tests you write, it is the ones you keep honest for two years after everybody who first wrote them has moved on to some other team.',
-}
-
-// Romanian ABSOLUTE MAXIMUM, not a realistic submission and not a translation of PROSE above —
-// four independently written, high-entropy passages (varied vocabulary, real place names —
-// Bucuresti, Cluj-Napoca, Timisoara, Iasi, Brasov, Constanta, Viena, Munchen, Frankfurt,
-// Stuttgart — few repeated phrases) so gzip cannot find the easy wins repeated sentences give it.
-// This exact shape of fixture is what exposed that MAX_MODERATION_URL_CHARS itself was wrong: at
-// the old budget of 1900 it measured over, which first led to lowering CAPS.anythingElse to 550 —
-// but the 1900 ceiling came from Outlook, which is never in the delivery path (spec section 8:
-// Resend's sandbox sender can only reach the owner's own Gmail). The budget is 2400 and
-// anythingElse is back to 700 in src/lib/sanitize.ts; this fixture is unchanged and still the
-// worst case worth pinning, now against the corrected budget. Diacritics cost two UTF-8 bytes
-// each pre-gzip, and this project's own colleagues are Romanian and German, so Romanian, not
-// English, is that worst case. Each passage is written long enough to already meet its cap in
-// code units, same discipline as PROSE above, so toCap only ever slices here — it never doubles,
-// because doubling a paragraph lets gzip crush it and the measurement stops meaning anything
-// (this mistake was made once measuring an earlier version of this exact fixture: 740 chars
-// instead of the real figure, because a doubled paragraph compresses far better than natural
-// prose does).
-const PROSE_RO_MAX = {
-  whatIDid:
-    'A coordonat migrarea suitei de regresie din Selenium către Playwright pe durata a trei sprinturi, cu echipe distribuite între București, Cluj-Napoca și Hamburg. A construit un raportor propriu peste Allure, a integrat Grafana pentru urmărirea flakiness-ului și a documentat totul într-un wiki Confluence pe care noii angajați îl parcurg în prima săptămână, nu în a treia lună ca înainte.',
-  whatChanged:
-    'Înainte de proiect, echipa din Timișoara rula manual peste patru sute de cazuri înaintea fiecărei lansări trimestriale, cu foi Excel partajate prin e-mail și desincronizate în permanență. După implementare, pipeline-ul din GitLab CI declanșează automat suita nocturnă, notifică pe Slack canalul #qa-alerts și atașează un raport HTML cu capturi video pentru fiecare eșec, direct din regiunea Frankfurt unde rulează agenții.',
-  hiringManager:
-    'L-aș recomanda oricând unui client din Iași sau din Stuttgart fără nicio ezitare, indiferent de mărimea echipei sau de complexitatea integrării. Nu acceptă un plan de testare doar pentru că vine de la un arhitect senior, ci cere date concrete și le aduce el însuși dacă lipsesc. A mentorat trei ingineri juniori din echipa de la Brașov, iar doi dintre ei conduc acum propriile module de automatizare, ceea ce spune mai multe despre el decât orice recomandare scrisă vreodată.',
-  anythingElse:
-    'Povestea pe care o repet cel mai des colegilor din Constanța este cea cu integrarea de plăți SEPA: un furnizor extern din Viena a modificat formatul unui câmp XML fără preaviz, iar suita construită de el a prins discrepanța chiar în rularea de dimineață, cu un raport care indica exact linia din schema XSD afectată. A scris un script Python separat care validează schema la fiecare build, independent de suita principală din TypeScript, tocmai pentru cazurile în care API-ul extern se schimbă fără avertisment. Anul trecut, când departamentul de conformitate din Munchen a cerut un audit complet al urmelor de testare pentru ultimele douăsprezece luni, a reușit să extragă totul dintr-o interogare SQL scrisă cu o seară înainte, pentru că fiecare rulare salvează metadate structurate într-o bază PostgreSQL separată de artefactele CI. Nimeni altcineva din organizație nu ar fi putut face asta la fel de repede, iar auditul s-a încheiat fără nicio observație, lucru rar pentru o echipă de dimensiunea noastră răspândită pe trei fusuri orare.',
-}
-
-const toCap = (text, cap) => (text.length >= cap ? text.slice(0, cap) : `${text} ${text}`.slice(0, cap))
-const noise = (n) => randomBytes(n * 2).toString('base64').replace(/[+/=]/g, 'A').slice(0, n)
-
-function moderationUrlFor(answers, author) {
-  const token = signModerationToken({ ...record, answers, author }, MOD_SECRET)
-  return `${SITE_ORIGIN}/moderate#a=publish&t=${token}`
-}
-
-const naturalUrl = moderationUrlFor(
-  {
-    whatIDid: toCap(PROSE.whatIDid, CAPS.whatIDid),
-    whatChanged: toCap(PROSE.whatChanged, CAPS.whatChanged),
-    hiringManager: toCap(PROSE.hiringManager, CAPS.hiringManager),
-    anythingElse: toCap(PROSE.anythingElse, CAPS.anythingElse),
-  },
-  {
-    name: toCap('Maria Alexandra Popescu-Ionescu', CAPS.name),
-    role: toCap('Senior Quality Assurance Engineer, Payments', CAPS.role),
-    company: toCap('Deutsche Bahn Vertrieb GmbH', CAPS.company),
-    linkedinSlug: 'maria-popescu-8a41b2',
-  },
-)
-
-// Slug at exactly 60 characters encoded — extractLinkedinSlug's own SLUG regex caps a slug at 60,
-// so this is the longest one the real system will ever accept, not an arbitrary round number.
-// LinkedIn (and encodeURIComponent, which matches its behavior) leaves ASCII letters, digits and
-// hyphens alone and percent-encodes only the non-ASCII UTF-8 bytes — each of the 3 diacritics
-// below costs 6 encoded characters (%XX%XX) instead of 1, which is the whole mechanism this
-// fixture exists to exercise, same shape as this site owner's own real slug
-// (%C8%99erban-andrei-5a14a51a5, see src/lib/sanitize.ts).
-const romanianSlugMax = encodeURIComponent('ștefania-brâncoveanu-vodă-1a2b3c4d5e6f7g8h9i0')
-
-// ABSOLUTE MAXIMUM, not a typical submission: every answer at its exact cap, name/role/company
-// each sliced to exactly 80 graphemes of Romanian, and a slug encoded to exactly 60 characters —
-// simultaneously, because that combination, not any single field alone, is what a real submitter
-// who fills in every box the site offers would actually send.
-const romanianUrlMax = moderationUrlFor(
-  {
-    whatIDid: toCap(PROSE_RO_MAX.whatIDid, CAPS.whatIDid),
-    whatChanged: toCap(PROSE_RO_MAX.whatChanged, CAPS.whatChanged),
-    hiringManager: toCap(PROSE_RO_MAX.hiringManager, CAPS.hiringManager),
-    anythingElse: toCap(PROSE_RO_MAX.anythingElse, CAPS.anythingElse),
-  },
-  {
-    name: toCap('Ștefania-Ioana Marinescu-Vasilescu, cunoscută în toată echipa drept Fani din Cluj-Napoca', CAPS.name),
-    role: toCap('Coordonator Senior de Automatizare a Testelor pentru Plăți Transfrontaliere SEPA', CAPS.role),
-    company: toCap('Grupul Financiar Est-Vest de Consultanță și Tehnologie Digitală Aplicată SRL Cluj', CAPS.company),
-    linkedinSlug: romanianSlugMax,
-  },
-)
-
-const noiseUrl = moderationUrlFor(
-  {
-    whatIDid: noise(CAPS.whatIDid),
-    whatChanged: noise(CAPS.whatChanged),
-    hiringManager: noise(CAPS.hiringManager),
-    anythingElse: noise(CAPS.anythingElse),
-  },
-  {
-    name: noise(CAPS.name),
-    role: noise(CAPS.role),
-    company: noise(CAPS.company),
-    linkedinSlug: noise(60),
-  },
-)
-
-console.log(
-  `      URL budget ${MAX_MODERATION_URL_CHARS}: ` +
-    `English at every cap = ${naturalUrl.length} chars (${MAX_MODERATION_URL_CHARS - naturalUrl.length} spare), ` +
-    `Romanian ABSOLUTE MAXIMUM (every cap + 60-char slug) = ${romanianUrlMax.length} chars ` +
-    `(${MAX_MODERATION_URL_CHARS - romanianUrlMax.length} spare), ` +
-    `incompressible at every cap = ${noiseUrl.length} chars (${noiseUrl.length - MAX_MODERATION_URL_CHARS} over)`,
-)
-
-check('natural-language answers at every cap fit the moderation URL', () => {
-  assert(
-    naturalUrl.length <= MAX_MODERATION_URL_CHARS,
-    `natural-language worst case is ${naturalUrl.length} chars, over the ${MAX_MODERATION_URL_CHARS} budget. Lower a cap in CAPS, or raise MAX_MODERATION_URL_CHARS — but only after confirming the moderation recipient is still Gmail-only (spec section 8); this budget is not sized against a general email client.`,
-  )
-})
-
-// This is not the realistic case any more — it is the LEGAL MAXIMUM the form allows: every answer
-// at its cap, name/role/company each at 80 graphemes, a 60-character encoded slug, all at once.
-// Measuring this exact shape is what first caught MAX_MODERATION_URL_CHARS being wrong (it was
-// 1900, sized against Outlook, which is never in the delivery path — spec section 8). The budget
-// is now 2400 and anythingElse is back to 700 in src/lib/sanitize.ts; this assertion still exists
-// because a future cap raise, or a future narrowing of MAX_MODERATION_URL_CHARS, should not be
-// able to silently reintroduce a 413 for a real thorough Romanian submitter — this is what makes
-// that regression visible before they find it.
-check('Romanian answers at every cap, including a 60-char encoded slug, fit the moderation URL (absolute maximum)', () => {
-  assert(
-    romanianUrlMax.length <= MAX_MODERATION_URL_CHARS,
-    `Romanian absolute-maximum case is ${romanianUrlMax.length} chars, over the ${MAX_MODERATION_URL_CHARS} budget. Lower a cap in CAPS, or raise MAX_MODERATION_URL_CHARS — but only after confirming the moderation recipient is still Gmail-only (spec section 8); this budget is not sized against a general email client.`,
-  )
-})
-
-check('incompressible answers at every cap overflow the budget, which is what the 413 is for', () => {
-  assert(
-    noiseUrl.length > MAX_MODERATION_URL_CHARS,
-    `incompressible worst case now fits (${noiseUrl.length} chars). Caps must have been lowered — /api/testimonials/submit can drop its 413 branch, and this check should be deleted with it.`,
-  )
-})
-
 // --- client-side decoding (no secret) ----------------------------------------
-// DecompressionStream and Blob are Node globals from 18 onward, so the browser path is genuinely
-// executable here rather than only reasoned about.
+// The invite fragment is plain base64url over an FS-joined string — no compression — so the
+// browser path is genuinely executable here rather than only reasoned about.
 
 async function checkAsync(name, fn) {
   try {
@@ -539,9 +353,7 @@ async function checkAsync(name, fn) {
   }
 }
 
-const { decodeInviteUnverified, decodeModerationUnverified } = await import(
-  '../src/lib/token-client.ts'
-)
+const { decodeInviteUnverified } = await import('../src/lib/token-client.ts')
 
 const clientInvite = {
   v: '1',
@@ -551,26 +363,6 @@ const clientInvite = {
   projectSlug: 'tokero',
   message: 'A few lines about the suite?',
   exp: 1801526400,
-}
-
-const clientRecord = {
-  id: 'aB3xK9pQr7Zt',
-  projectSlug: 'tokero',
-  publishedAt: '2026-09-14',
-  submittedAt: '2026-09-13',
-  consent: { version: 1, at: '2026-09-13T18:42:07Z' },
-  author: {
-    name: 'Maria Popescu',
-    role: 'QA Lead',
-    company: 'TOKERO',
-    linkedinSlug: 'maria-popescu-8a41b2',
-  },
-  answers: {
-    whatIDid: '',
-    whatChanged: 'Overnight instead of two days.',
-    hiringManager: 'I would work with him again.',
-    anythingElse: '',
-  },
 }
 
 check('the invite fragment decodes to the same fields the server will verify', () => {
@@ -591,40 +383,6 @@ check('a forged invite signature still decodes here, because this module cannot 
 check('malformed invite fragments return null', () => {
   for (const bad of ['', '#', '#notatoken', '#a.b.c', '#.', `#${'A'.repeat(20)}`]) {
     assert(decodeInviteUnverified(bad) === null, `expected null for ${JSON.stringify(bad)}`)
-  }
-})
-
-await checkAsync('the moderation fragment gunzips on the browser path', async () => {
-  const token = signModerationToken(clientRecord, MOD_SECRET)
-  assertDeepEqual(
-    await decodeModerationUnverified(`#a=publish&t=${token}`),
-    clientRecord,
-    'the record did not survive gzip in, gunzip out',
-  )
-  assertDeepEqual(
-    await decodeModerationUnverified(`a=discard&t=${token}`),
-    clientRecord,
-    'a fragment without the leading # was rejected',
-  )
-})
-
-await checkAsync('an absent, malformed or non-gzip moderation fragment returns null', async () => {
-  for (const bad of [
-    '',
-    '#',
-    '#a=publish',
-    '#a=publish&t=',
-    '#a=publish&t=notatoken',
-    '#a=publish&t=AAAAAAAA.BBBBBBBB',
-    `#t=${'A'.repeat(60)}.${'B'.repeat(43)}`,
-  ]) {
-    let out
-    try {
-      out = await decodeModerationUnverified(bad)
-    } catch (err) {
-      throw new Error(`threw on ${JSON.stringify(bad)}: ${err}`)
-    }
-    assert(out === null, `expected null for ${JSON.stringify(bad)}, got ${JSON.stringify(out)}`)
   }
 })
 
