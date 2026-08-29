@@ -626,7 +626,9 @@ export default function TestimonialForm({
             <p>
               <strong className="text-gray-300">Where it lives</strong> &mdash; until I publish it,
               your submission sits in a private store only I can read. If I publish it, it goes into
-              this site&apos;s public repository. If I don&apos;t, I delete it and nothing remains.
+              this site&apos;s public repository. If I don&apos;t, I delete it from that store. A copy
+              stays in that store&apos;s private history, which nobody but me can see &mdash; ask me
+              and I will wipe that too.
             </p>
             <p>
               <strong className="text-gray-300">Your say</strong> &mdash; ask me to correct it or take
