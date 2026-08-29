@@ -628,5 +628,138 @@ await checkAsync('an absent, malformed or non-gzip moderation fragment returns n
   }
 })
 
+// --- admin session cookie ----------------------------------------------------
+// randomBytes is imported statically at the top of this file; createHmac is not, and this file
+// is append-only, so it is pulled in here rather than by editing that import.
+const { createHmac } = await import('node:crypto')
+
+// src/lib/admin-auth.ts asserts ADMIN_PASSWORD at module load (and imports token.ts, whose own
+// module-scope asserts already ran above), so it must exist before the dynamic import below.
+// A test value; it is not the real password and never leaves this file.
+const ADMIN_PASSWORD = 'check-tokens-admin-password-0123456789'
+process.env.ADMIN_PASSWORD = ADMIN_PASSWORD
+
+const { SESSION_COOKIE, SESSION_TTL_SECONDS, checkPassword, mintSession, verifySession } =
+  await import('../src/lib/admin-auth.ts')
+
+// A fixed clock, so "expired" is a property of the assertion and not of when the suite runs.
+const NOW = 1800000000
+
+// 1 - round trip
+check('an admin session token survives a full round trip', () => {
+  assert(SESSION_COOKIE === 'admin_session', `SESSION_COOKIE is ${SESSION_COOKIE}`)
+  assert(SESSION_TTL_SECONDS === 2592000, `SESSION_TTL_SECONDS is ${SESSION_TTL_SECONDS}`)
+  const token = mintSession(NOW)
+  assert(
+    /^[0-9]{10}\.[A-Za-z0-9_-]{43}$/.test(token),
+    `token is not <expiry>.<base64url sha256>: ${token}`,
+  )
+  assert(token.split('.')[0] === String(NOW + SESSION_TTL_SECONDS), 'expiry stamp is wrong')
+  assert(verifySession(token, NOW) === true, 'a freshly minted session did not verify')
+  // Cookie-safe: no ';', ',', '=' or whitespace, so it needs no quoting in a Set-Cookie header.
+  assert(!/[;,=\s"]/.test(token), `token needs cookie quoting: ${token}`)
+})
+
+// 2 - tamper must fail
+check('a tampered admin session signature fails verification', () => {
+  const token = mintSession(NOW)
+  const [stamp, sig] = token.split('.')
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+  const at = Math.floor(sig.length / 2)
+  const swapped = alphabet[(alphabet.indexOf(sig[at]) + 1) % alphabet.length]
+  const tampered = `${stamp}.${sig.slice(0, at)}${swapped}${sig.slice(at + 1)}`
+  assert(tampered !== token, 'the tamper did not change the token')
+  assert(verifySession(tampered, NOW) === false, 'a tampered signature verified')
+  // Moving the expiry stamp forward is the interesting forgery: it is signed, so it must fail.
+  assert(
+    verifySession(`${Number(stamp) + 86400}.${sig}`, NOW) === false,
+    'an extended expiry verified against the original signature',
+  )
+})
+
+// 3 - expiry must be enforced
+check('an expired admin session fails verification', () => {
+  const token = mintSession(NOW)
+  assert(verifySession(token, NOW + SESSION_TTL_SECONDS - 1) === true, 'rejected one second early')
+  assert(verifySession(token, NOW + SESSION_TTL_SECONDS) === false, 'accepted at the exact expiry')
+  assert(verifySession(token, NOW + SESSION_TTL_SECONDS + 1) === false, 'accepted after expiry')
+})
+
+// 4 - wrong domain must fail
+check('a stamp signed under the invite i1 domain does not verify as a session', () => {
+  const expiry = NOW + SESSION_TTL_SECONDS
+  const asI1 = createHmac('sha256', MOD_SECRET).update(`i1.${expiry}`, 'utf8').digest('base64url')
+  assert(verifySession(`${expiry}.${asI1}`, NOW) === false, 'an i1-domain MAC verified as s1')
+  const wrongKey = createHmac('sha256', INVITE_SECRET)
+    .update(`s1.${expiry}`, 'utf8')
+    .digest('base64url')
+  assert(verifySession(`${expiry}.${wrongKey}`, NOW) === false, 'INVITE_SECRET signed a session')
+})
+
+// 5 - wrong-length signature must be false, not RangeError
+check('a wrong-length admin session signature returns false instead of throwing RangeError', () => {
+  const [stamp] = mintSession(NOW).split('.')
+  for (const sig of ['A', 'AA', 'A'.repeat(42), 'A'.repeat(44), 'A'.repeat(86)]) {
+    let result
+    try {
+      result = verifySession(`${stamp}.${sig}`, NOW)
+    } catch (err) {
+      throw new Error(`verifySession threw on a ${sig.length}-char signature: ${err}`)
+    }
+    assert(result === false, `a ${sig.length}-char signature verified`)
+  }
+  for (const bad of [undefined, '', '.', 'nodot', 'a.b.c', `${NOW}.`, `x.${'A'.repeat(43)}`]) {
+    let result
+    try {
+      result = verifySession(bad, NOW)
+    } catch (err) {
+      throw new Error(`verifySession threw on ${JSON.stringify(bad)}: ${err}`)
+    }
+    assert(result === false, `expected false for ${JSON.stringify(bad)}`)
+  }
+})
+
+// 6 - the password comparison
+check('checkPassword accepts only the exact password, and never throws', () => {
+  assert(checkPassword(ADMIN_PASSWORD) === true, 'the real password was rejected')
+  const sameLength = `${ADMIN_PASSWORD.slice(0, -1)}X`
+  assert(sameLength.length === ADMIN_PASSWORD.length, 'the fixture is not the same length')
+  assert(checkPassword(sameLength) === false, 'a same-length wrong password was accepted')
+  // The RangeError trap: timingSafeEqual throws on unequal lengths, so a short guess must be
+  // caught by the length check and come back as a plain false (a 401), never a 500.
+  for (const bad of ['', 'short', `${ADMIN_PASSWORD}x`, undefined, null, 42, {}, []]) {
+    let result
+    try {
+      result = checkPassword(bad)
+    } catch (err) {
+      throw new Error(`checkPassword threw on ${JSON.stringify(bad)}: ${err}`)
+    }
+    assert(result === false, `checkPassword accepted ${JSON.stringify(bad)}`)
+  }
+})
+
+// 7 - a short or missing ADMIN_PASSWORD must break the build, not the login
+await checkAsync('an empty or short ADMIN_PASSWORD throws at module load', async () => {
+  try {
+    for (const bad of ['', 'x'.repeat(23), 'correct horse battery']) {
+      process.env.ADMIN_PASSWORD = bad
+      let threw = false
+      try {
+        // A query string forces Node to re-evaluate the module instead of serving the cached
+        // instance; the extension in the pathname still selects type stripping.
+        await import(`../src/lib/admin-auth.ts?bad-password-${encodeURIComponent(bad)}`)
+      } catch {
+        threw = true
+      }
+      assert(threw, `admin-auth.ts loaded with ADMIN_PASSWORD = ${JSON.stringify(bad)}`)
+    }
+  } finally {
+    // This file shares one module scope and is appended to over time: leaving the environment
+    // broken would fail whatever is added below for a reason that has nothing to do with it.
+    process.env.ADMIN_PASSWORD = ADMIN_PASSWORD
+  }
+})
+
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)
+
