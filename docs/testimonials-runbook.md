@@ -1,14 +1,24 @@
 # Testimonials — runbook
 
 Operating instructions for the invite-only testimonials feature. Design rationale lives in
-`docs/superpowers/specs/2026-08-28-testimonials-design.md`; this file is only the doing.
+`docs/superpowers/specs/2026-08-28-testimonials-design.md`, as amended by
+`2026-08-29-admin-moderation-design.md` (which replaced the email path with an admin page); this
+file is only the doing.
 
-**The shape of it in six lines.** You mint a signed invite link on your laptop and send it by hand in
-a LinkedIn DM. The colleague fills in a form on aserban.ro. Nothing is stored anywhere: the submission
-is signed, gzipped and mailed to your Gmail, and **that email is the only copy**. From the email you
-tap Publish, which opens a pull request against `src/content/testimonials.json`; you merge it from the
-GitHub mobile app and Vercel deploys in about 90 seconds. Tapping Discard writes nothing anywhere —
-rejection is literally doing nothing, which is why the retention promise in the consent text is true.
+**The shape of it in eight lines.** You mint a signed invite link on your laptop and send it by hand
+in a LinkedIn DM. The colleague fills in the form on aserban.ro. The submission is written as
+`pending/<id>.json` to a **private** GitHub repository, `seradi96/qa-portfolio-pending`, and GitHub
+emails you — because you are watching that repository, which is now the only notification there is.
+You open `https://aserban.ro/admin` on your phone, type the password once (a signed cookie then
+lasts 30 days), and read each pending submission rendered by the same `TestimonialCard` the live site
+uses. **Publish** opens a pull request against `src/content/testimonials.json` and deletes the pending
+file; you merge from the GitHub mobile app and Vercel deploys in about 90 seconds. **Reject** (after a
+one-tap confirmation) deletes the pending file and does nothing else.
+
+One honest change from the old design: a pending submission is now **stored**, in a private
+single-reader repository, until you act on it. Rejecting deletes the file but not that repository's
+git history. The privacy note on the form no longer promises otherwise — it says the submission sits
+in a private store only you can read. Do not re-promise "nothing is stored anywhere" to anyone.
 
 ---
 
@@ -20,9 +30,9 @@ the build output for all four values and fails the build if one leaks.
 | Name | What it is | Where else it must match |
 |---|---|---|
 | `INVITE_SECRET` | HMAC key for `i1` invite tokens | your local `.env.local` — `npm run invite` signs with it |
-| `MOD_SECRET` | HMAC key for `m1` moderation tokens | nowhere; only the server uses it |
-| `RESEND_API_KEY` | Sends the moderation email | nowhere |
-| `GITHUB_TOKEN` | Fine-grained PAT, `seradi96/qa-portfolio` only, Contents R/W + Pull requests R/W | nowhere |
+| `MOD_SECRET` | HMAC key for the `/admin` session cookie. **Repurposed** — it no longer signs moderation tokens, which no longer exist | nowhere; only the server uses it |
+| `ADMIN_PASSWORD` | The `/admin` password. **Generated, 24+ characters** — see §2.3 | nowhere |
+| `GITHUB_TOKEN` | Fine-grained PAT over **both** `seradi96/qa-portfolio` (Contents R/W + Pull requests R/W) and the private `seradi96/qa-portfolio-pending` (Contents R/W) | nowhere |
 
 Set them at **Vercel → the project → Settings → Environment Variables**, ticking **Production** only.
 Changing a value does not affect deployments that already exist — you must redeploy
@@ -33,9 +43,11 @@ disagree, every link you mint is rejected with a 403 on the live site and the co
 "this link isn't valid" screen. Copy it, don't retype it.
 
 **`.env.local` also gates the build itself, not just runtime.** `src/lib/token.ts` asserts
-`INVITE_SECRET` and `MOD_SECRET` at module scope, and `next build` evaluates route-handler modules
-while "Collecting page data" — so `npm run build` fails on a fresh clone with no `.env.local` at all,
-before a single page renders:
+`INVITE_SECRET` and `MOD_SECRET` at module scope and `src/lib/admin-auth.ts` asserts `ADMIN_PASSWORD`
+(minimum 24 characters) the same way, and `next build` evaluates route-handler modules while
+"Collecting page data" — so `npm run build` fails on a fresh clone with no `.env.local` at all,
+before a single page renders. A too-short `ADMIN_PASSWORD` fails it just as loudly, which is the
+point: the login must break at build time, not at 11pm:
 
 ```
 Error: INVITE_SECRET is missing, empty, or shorter than 32 characters...
@@ -48,27 +60,67 @@ This tripped two people into the wrong diagnosis (blaming the shell environment)
 
 ---
 
-## 2. Set up the Gmail filter — mandatory, do it before the first invite
+## 2. One-time setup — all four steps, before the first invite
 
-The moderation email is **the only copy of a pending submission**. Nothing is stored server-side.
-If one lands in Spam, Gmail deletes it after 30 days and the submission is gone — the only recovery
-is asking the colleague to write it again from the same still-valid link, which you will not enjoy
-doing. The sender is `onboarding@resend.dev`, a shared Resend sandbox domain used by thousands of
-other senders, so its reputation is not yours to control. That is what makes this a hard setup step
-rather than a nicety.
+### 2.1 Create the private pending repository
 
-In Gmail on desktop:
+github.com → **New repository** → owner `seradi96`, name **`qa-portfolio-pending`**, visibility
+**Private**. Tick **Add a README file** so the repo is not empty (an empty repo has no default
+branch, and the store writes to `main`). Nothing else.
 
-1. Search box → **Show search options** (the sliders icon).
-2. **From:** `onboarding@resend.dev` → **Create filter**.
-3. Tick: **Never send it to Spam**, **Always mark it as important**, **Categorize as: Primary**,
-   and **Apply the label:** → *New label* → `Testimonials`.
-4. **Create filter.**
-5. Also add `onboarding@resend.dev` to Contacts — belt and braces on the reputation problem.
+The name is a hardcoded constant in `src/lib/pending-store.ts` — there is no environment variable
+for it, deliberately, so a typo cannot send someone's testimonial to a repository you do not own.
+If you name it anything else, edit that constant.
 
-Verify it before trusting it: mint an invite to yourself (§3), submit the form, and confirm the mail
-arrives in **Primary**, labelled, with the full submission readable in the body without tapping
-anything. That readability is the point — triage happens on the lock screen.
+You will never open a file in this repo by hand in normal use. It is a queue, not a workspace.
+
+### 2.2 Extend the fine-grained token to both repositories
+
+github.com → **Settings → Developer settings → Personal access tokens → Fine-grained tokens** →
+your existing token → **Edit**. Repository access: **Only select repositories** → add
+`seradi96/qa-portfolio-pending` alongside `seradi96/qa-portfolio`.
+
+Permissions apply to every selected repository, so the set is the union of what each needs:
+**Contents: Read and write** and **Pull requests: Read and write**. Nothing else. (The pending repo
+only needs Contents; a fine-grained token cannot grant Pull requests to one repo and not the other,
+and the extra grant on a private single-file queue is not worth a second token to avoid.)
+
+A token that reaches `qa-portfolio` but not `qa-portfolio-pending` fails in a specific way: invites
+work, the form submits, and the submitter is told it did not save — §9.
+
+### 2.3 Generate `ADMIN_PASSWORD`
+
+```bash
+node -e "console.log(require('node:crypto').randomBytes(24).toString('base64url'))"
+```
+
+Paste it into Vercel Production and into `.env.local`. Put it in your password manager, because you
+will type it on a phone and there is no reset flow.
+
+**Do not choose a memorable one.** There is no rate limiting on `/api/admin/login` and there cannot
+usefully be: a Vercel function has no throttle in front of it, and a module-scoped attempt counter
+resets on every cold start and is not shared across concurrent lambdas, so an attacker would get an
+unlimited parallel guessing budget regardless. Entropy in the password is the entire defence.
+`src/lib/admin-auth.ts` refuses to load below 24 characters, so a short one fails the build.
+
+### 2.4 Watch the pending repository — this is the ONLY notification
+
+github.com → `seradi96/qa-portfolio-pending` → **Watch** → **All Activity**. Confirm your GitHub
+notification settings actually deliver email (**Settings → Notifications → Email**).
+
+**Nothing fails loudly if you skip this.** The old design pushed the submission into your inbox, so
+a delivery failure was visible. Now the submission lands safely in the private repo and simply sits
+there unseen; there is no alarm, no retry, and no second channel. Two habits cover the gap: enable
+Watch, and open `/admin` yourself a day or two after sending any invite.
+
+### 2.5 Verify the whole loop before inviting a real person
+
+Mint an invite to yourself (§3), submit the form on the live site, then confirm all four:
+
+1. `pending/<id>.json` appears in `seradi96/qa-portfolio-pending`.
+2. GitHub emails you about it.
+3. `https://aserban.ro/admin` lists it, rendered by the real card.
+4. Rejecting it removes the file from the repo.
 
 ---
 
@@ -86,8 +138,9 @@ npm run invite -- \
 `--project` must be one of `deutsche-bahn`, `tokero`, `dentsply-sirona`, `happy-media`, `other`
 (the list is `PROJECT_SLUGS` in `src/lib/projects-meta.ts`). The script prints two things: the URL
 (`https://aserban.ro/invite#<token>`, around 229 characters) and a paste-ready LinkedIn DM containing
-it. Send the DM by hand. **The application never emails anyone but you** — that is why there are no
-DNS records to maintain.
+it. Send the DM by hand. **The application sends no email at all** — GitHub does, because you are
+watching the pending repository (§2.4). That is why there are no DNS records, no sending domain and
+no email provider to maintain.
 
 Before sending, read the DM once as the recipient would. It should sound like you wrote it, and the
 URL should be short enough not to read as phishing.
@@ -101,44 +154,58 @@ If it fails with a missing `INVITE_SECRET`, that means no `.env.local` — see �
 
 ---
 
-## 4. Review a submission
+## 4. Review a submission at `/admin`
 
-The email carries the whole submission in plain text plus two links:
+Open `https://aserban.ro/admin`. First visit on a device shows a single password box; type
+`ADMIN_PASSWORD` and you get a signed `admin_session` cookie good for **30 days**
+(`HttpOnly; Secure; SameSite=Lax`). After that the page opens straight into the queue.
 
-- `https://aserban.ro/moderate#a=publish&t=…`
-- `https://aserban.ro/moderate#a=discard&t=…`
+Each pending submission is rendered by the **real `TestimonialCard`**, the same component the live
+site uses, so what you publish is byte-for-byte what ships. Two buttons per submission, both POSTs,
+both guarded by the session cookie and by the hardcoded `SITE_ORIGIN` Origin check:
 
-Both merely open the page — **no GET in this feature changes anything**, which is why mail scanners
-prefetching your links cannot approve a testimonial by accident. The page reads the token from the
-URL fragment (which never leaves the browser), gunzips it, and renders the record through the exact
-same `TestimonialCard` the live site uses, so what you see is what ships.
+- **Publish** → `POST /api/admin/publish` → re-validates every field, then a branch
+  `testimonial/<id>`, a commit, and a pull request against `src/content/testimonials.json`, then
+  deletes `pending/<id>.json`. Merge the PR from the GitHub mobile app. Live in ~90 seconds.
+- **Reject** → asks "Delete this submission?" once, since the pending file is the only copy of it
+  and the delete cannot be undone. Confirming calls `POST /api/admin/reject`, which deletes
+  `pending/<id>.json` and nothing else.
 
-- **Publish** → POSTs to `/api/testimonials/publish` → a branch `testimonial/<id>`, a commit, and a
-  pull request. Merge it from the GitHub mobile app. Live in ~90 seconds.
-- **Discard** → calls nothing at all. Then **delete the email** — the screen says so, because that
-  email is the last remaining copy.
+Re-validation on publish is not redundant: the record has travelled through a store since it was
+sanitised, and passing validation once is not proof it is still well-formed. A record that fails it
+comes back as a 422 and stays in the queue, untouched.
 
-Tapping Publish twice is safe: the second tap says "Pull request already open", and after the merge
-it says "Already published". Publishing is idempotent on the record's `id`.
+Tapping Publish twice is safe: the second tap shows "A pull request was already open" (with a note
+that it still needs merging) if the first is unmerged, or "Already on the site" once it has been
+merged. Publishing is idempotent on the record's `id`.
 
-Before you merge, do the one check no script can do: click **Verify on LinkedIn** on the preview card
-and confirm it lands on the real person. Slugs are percent-encoded in the wild — this site's own is
+An empty queue renders as "Nothing waiting" — the normal state, not an error. Git cannot store an
+empty directory, so the store reads a 404 from `GET /contents/pending` and returns `[]`.
+
+Before you merge, do the one check no script can do: click **Verify on LinkedIn** on the card and
+confirm it lands on the real person. Slugs are percent-encoded in the wild — this site's own is
 `%C8%99erban-andrei-5a14a51a5` — so a broken slug is a genuine failure mode, not a theoretical one.
+
+`/admin` cannot be exercised from `localhost`: its POST routes carry the same absolute `SITE_ORIGIN`
+check as the submit route. That is deliberate and unchanged from the original design.
 
 ---
 
 ## 5. Publish by hand when the API path fails
 
-If Publish returns a 502, or `GITHUB_TOKEN` has expired or been revoked, the same email contains two
-fallbacks: a prefilled GitHub editor URL, and the exact JSON record as a paste-ready block. The token
-is a convenience, not a dependency.
+If Publish returns a 502, or `GITHUB_TOKEN` has expired or been revoked, the submission is not lost:
+it is still sitting in the private repo as `pending/<id>.json`, and that file **is** the record, in
+exactly the shape `src/content/testimonials.json` stores. The token is a convenience, not a
+dependency.
 
-1. Open the GitHub editor link from the email (or navigate to
-   `https://github.com/seradi96/qa-portfolio/edit/main/src/content/testimonials.json`).
-2. Paste the JSON record into the array. It is an array of objects — mind the comma after the
-   previous entry, and keep the newest record anywhere; `src/lib/testimonials.ts` sorts by
-   `publishedAt`.
+1. Open `https://github.com/seradi96/qa-portfolio-pending/blob/main/pending/<id>.json` and copy the
+   whole `{ … }` object.
+2. Open `https://github.com/seradi96/qa-portfolio/edit/main/src/content/testimonials.json` and paste
+   it into the array. It is an array of objects — mind the comma after the previous entry, and keep
+   the newest record anywhere; `src/lib/testimonials.ts` sorts by `publishedAt`.
 3. Commit to a new branch, open the pull request, wait for the Vercel preview, merge.
+4. **Delete `pending/<id>.json` from the private repo by hand** — the API path would have done this
+   for you, and a leftover pending file will show up in `/admin` as if it were still unreviewed.
 
 If you would rather do it on the laptop:
 
@@ -197,26 +264,33 @@ would be state. Use it when a link has been forwarded somewhere you did not inte
 a clean slate. Afterwards, update `.env.local` to the same value and re-mint links for anyone still
 mid-write, apologising for the churn.
 
-**`MOD_SECRET`.** Rotating it invalidates every moderation email you have not yet acted on — those
-submissions become unpublishable and the colleague has to resubmit. Clear your inbox of pending
-testimonials before rotating, or accept that cost.
+**`MOD_SECRET` — the other panic button.** It signs the `/admin` session cookie, so rotating it
+**signs every admin session out at once, on every device**. That is what you reach for if the phone
+you stay logged in on is lost or stolen: rotate, redeploy, and every outstanding cookie is dead
+within one deployment. Nothing else is affected — pending submissions are untouched, invites are
+untouched, and you simply type the password again next time. It no longer signs moderation tokens;
+that family was deleted with the email path.
 
-**`RESEND_API_KEY`.** resend.com → **API keys** → revoke the old key, create a new one with **Sending
-access** only, paste into Vercel, redeploy. A stale key means submissions return 503 and the form keeps
-everything the colleague typed — they can retry once you have fixed it, so this failure is recoverable.
+**`ADMIN_PASSWORD`.** Generate a new one with the §2.3 command, set it in Vercel Production, redeploy,
+and update `.env.local`. Rotate it if you ever type it somewhere you should not have, or on a device
+you no longer trust. Note that rotating the password does **not** invalidate existing sessions — the
+cookie is signed with `MOD_SECRET`, not derived from the password — so if the concern is a device
+rather than the secret, rotate `MOD_SECRET` too, or instead.
 
 **`GITHUB_TOKEN` — revoke first, ask questions later.** This is the token that can write to any branch
 of `seradi96/qa-portfolio`, `main` included. A leaked token is a site takeover in either git-target
 design this feature considered — the branch-and-PR flow buys review of the application's own writes,
 not credential containment, because a fine-grained PAT's `Contents: Read & Write` permission is
-repository-scoped, with no per-branch grant. That risk is accepted rather than solved. Containment,
-not prevention, is the plan:
+repository-scoped, with no per-branch grant. It now also exposes every pending submission, because
+the same token reaches the private queue. Same acceptance as before, same mitigation: server-side
+only, Production only, never logged, revocable in minutes. Containment, not prevention, is the plan:
 
 1. github.com → **Settings → Developer settings → Personal access tokens → Fine-grained tokens** →
    the token → **Revoke**. Do this before anything else; publishing degrades to §5, which still works.
-2. **Generate new token** → Repository access: **Only select repositories** → `seradi96/qa-portfolio`.
-   Permissions: **Contents: Read and write**, **Pull requests: Read and write** (Metadata: Read-only is
-   added for you). Nothing else. Set an expiry you will actually notice.
+2. **Generate new token** → Repository access: **Only select repositories** → both
+   `seradi96/qa-portfolio` **and** `seradi96/qa-portfolio-pending`. Permissions: **Contents: Read and
+   write**, **Pull requests: Read and write** (Metadata: Read-only is added for you). Nothing else.
+   Set an expiry you will actually notice.
 3. Paste into Vercel Production, redeploy, and test with the §4 loop against an invite to yourself.
 4. Check `https://github.com/seradi96/qa-portfolio/branches` and the pull request list for anything
    you did not create.
@@ -236,6 +310,12 @@ the person it may take a day.
 record, changes every SHA, requires a force-push to a public repository, breaks every existing clone
 and every pull-request reference, and does **not** reach forks or GitHub's cached views of the old
 objects — for those you must open a GitHub Support request to purge them.
+
+**Check the private repo too.** If the record ever sat in `seradi96/qa-portfolio-pending` — every
+record does, now — then deleting the pending file removed it from the queue but not from that
+repository's history. For a true erasure request, run the same `git filter-repo` recipe against
+`qa-portfolio-pending` as well, or, far simpler for a queue nobody reads: delete that repository and
+create it again empty per §2.1. Nothing in the site depends on its history.
 
 ```bash
 brew install git-filter-repo
@@ -277,9 +357,9 @@ head; and open a GitHub Support request asking them to purge cached views of the
 | Colleague sees "this link isn't valid" | `.env.local` `INVITE_SECRET` ≠ Vercel Production | Copy the Vercel value into `.env.local`, re-mint |
 | "This invite has expired" | past its 45 days | Mint a fresh one |
 | Form returns 403 | submitted from a preview deployment, not `https://aserban.ro` | Expected — the Origin check is absolute and has no localhost exemption |
-| Form returns 413 | answers exceed the URL budget | Ask for a shorter answer; the error says roughly how much |
-| Form returns 503 | Resend rejected the send | Check `RESEND_API_KEY`; the form has kept everything they typed, so they can retry |
-| No email at all | Spam, or Resend's 100/day ceiling | §2; check resend.com's logs |
-| Publish returns 502 | `GITHUB_TOKEN` expired, revoked, or lacking a permission | §7, and publish by hand via §5 meanwhile |
-| Moderate page is blank | no JavaScript, or a browser without `DecompressionStream` | Use Chrome 80+/Safari 16.4+/Firefox 113+, or §5 |
+| Form returns 503 | the write to the private pending repo failed | Check `GITHUB_TOKEN` reaches `seradi96/qa-portfolio-pending` (§2.2); the form kept everything they typed, so they can retry |
+| No GitHub notification | Watch is not set to All Activity, or GitHub email notifications are off | §2.4 — and check `/admin` directly; the submission is almost certainly there |
+| `/admin` shows the password box again | the 30-day session expired, or `MOD_SECRET` was rotated | Type the password again — both are expected, not a fault |
+| `/admin` rejects the right password | `ADMIN_PASSWORD` in Vercel Production differs from what you are typing, or the deployment predates the change | Set it in Vercel and **redeploy** — env changes do not reach existing deployments |
+| Publish returns 502 | `GITHUB_TOKEN` expired, revoked, or lacking a permission on either repo | §7, and publish by hand via §5 meanwhile |
 | Section missing from the live site | `testimonials.json` is `[]`, or every record failed validation and was dropped | `npm run build` and read the `postbuild:` lines |
