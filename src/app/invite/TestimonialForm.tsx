@@ -26,10 +26,10 @@ type Question = {
 const QUESTIONS: Question[] = [
   {
     key: 'whatIDid',
-    label: 'What was I actually doing on the team?',
+    label: 'What was Andrei actually doing on the team?',
     optional: true,
     cap: CAPS.whatIDid,
-    help: "One line is plenty — how you'd describe my job to someone who wasn't there.",
+    help: "One line is plenty — how you'd describe his job to someone who wasn't there.",
     placeholder:
       'He owned the end-to-end suite and was the person we pinged when a pipeline went red at 6pm.',
   },
