@@ -518,6 +518,61 @@ await checkAsync('an empty or short ADMIN_PASSWORD throws at module load', async
   }
 })
 
+// --- linkedin slugs with diacritics ------------------------------------------
+// Chrome copies the percent-encoded address; Safari and Firefox copy the decoded one. Both forms
+// have to reach the same slug, because this site's colleagues are Romanian and German and their
+// slugs carry diacritics as a matter of course.
+const REAL_ENCODED = '%C8%99erban-andrei-5a14a51a5'
+
+check('a pasted URL keeps working when the browser percent-encoded it', () => {
+  assert(
+    extractLinkedinSlug(`https://www.linkedin.com/in/${REAL_ENCODED}/`) === REAL_ENCODED,
+    'the already-encoded form did not survive',
+  )
+  assert(
+    extractLinkedinSlug(`https://www.linkedin.com/in/${REAL_ENCODED}/?trk=nav`) === REAL_ENCODED,
+    'tracking parameters were not stripped',
+  )
+})
+
+check('a pasted URL carrying a literal diacritic is encoded, not refused', () => {
+  for (const raw of [
+    'https://www.linkedin.com/in/\u0219erban-andrei-5a14a51a5',
+    'https://www.linkedin.com/in/\u0219erban-andrei-5a14a51a5/',
+    'linkedin.com/in/\u0219erban-andrei-5a14a51a5',
+    '\u0219erban-andrei-5a14a51a5',
+  ]) {
+    assert(extractLinkedinSlug(raw) === REAL_ENCODED, `not encoded: ${raw}`)
+  }
+  // German and Romanian shapes generally, not just this one name.
+  assert(extractLinkedinSlug('m\u00fcller-schmidt-1a2b') === 'm%C3%BCller-schmidt-1a2b', 'umlaut')
+  assert(extractLinkedinSlug('ion-\u021birlea-9f8e') === 'ion-%C8%9Birlea-9f8e', 'comma-below t')
+})
+
+check('encoding never widens what a slug may contain', () => {
+  // The href is built by templating a literal host with this value, so the alphabet IS the
+  // security property. Everything that could change the destination must still be refused.
+  for (const hostile of [
+    'javascript:alert(1)',
+    'https://evil.com/in/hacker',
+    '../../etc/passwd',
+    'name/with/slashes',
+    'has space',
+    'a',
+    'x'.repeat(61),
+  ]) {
+    let threw = false
+    try {
+      extractLinkedinSlug(hostile)
+    } catch {
+      threw = true
+    }
+    assert(threw, `accepted hostile input: ${JSON.stringify(hostile)}`)
+  }
+  // And an already-encoded slug is never encoded twice.
+  assert(!extractLinkedinSlug(REAL_ENCODED).includes('%25'), 'double-encoded an encoded slug')
+})
+
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)
 

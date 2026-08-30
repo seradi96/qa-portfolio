@@ -110,17 +110,43 @@ export function sanitizeIdentity(field: string, value: unknown, cap: number): st
 const LINKEDIN_URL = /linkedin\.com\/in\/([^/?#\s]+)/i
 // Real slugs are percent-encoded: this site's own is %C8%99erban-andrei-5a14a51a5.
 const SLUG = /^[A-Za-z0-9%_-]{3,60}$/
+// The same shape before a browser encoded it — letters in any script, marks, digits, - and _.
+// Deliberately excludes '/', ':', '.', whitespace and everything else that could carry URL
+// structure, so only a slug that is genuinely just a name gets percent-encoded below.
+const DECODED_SLUG = /^[\p{L}\p{M}\p{N}_-]{3,60}$/u
 
 export function extractLinkedinSlug(value: unknown): string {
   if (typeof value !== 'string') throw new FieldError('linkedinSlug', 'Expected text.')
   const trimmed = value.replace(BIDI, '').replace(ZERO_WIDTH, '').trim()
   const matched = LINKEDIN_URL.exec(trimmed)
   const candidate = matched ? matched[1] : trimmed.replace(/^\/+/, '').replace(/\/+$/, '')
-  if (!SLUG.test(candidate)) {
-    throw new FieldError(
-      'linkedinSlug',
-      'Paste your profile URL, or just the bit after linkedin.com/in/.',
-    )
+  if (SLUG.test(candidate)) return candidate
+
+  // Safari and Firefox show — and copy — the DECODED address, so a colleague whose slug carries a
+  // diacritic pastes `linkedin.com/in/șerban-andrei-…` where Chrome would have handed them
+  // `%C8%99erban-andrei-…`. Both name the same profile. Refusing the first would turn away much of
+  // this site's own audience: Romanian and German names put ș, ț, ă, ö and ü in the slug as a
+  // matter of course, and the person would see "paste your profile URL" while looking at a profile
+  // URL they had just pasted.
+  //
+  // Percent-encoding it rather than refusing lands the value in exactly the restricted alphabet
+  // SLUG already enforces, so the href the card builds from it is no less constrained than before —
+  // the security property is the alphabet, and encoding cannot leave it.
+  //
+  // Skipped when the candidate already contains a '%': encoding an encoded slug would double it
+  // (`%C8%99…` becomes `%25C8%2599…`) and silently produce a link to nothing.
+  // Only a candidate that is ALREADY slug-shaped apart from its non-ASCII letters may be encoded.
+  // Without this guard `name/with/slashes` encodes to `name%2Fwith%2Fslashes`, which satisfies
+  // SLUG and would be accepted — turning input that used to earn a clear error into a link that
+  // silently goes nowhere. It cannot leave linkedin.com either way, so this is about not
+  // pretending to understand garbage, rather than about safety.
+  if (!candidate.includes('%') && DECODED_SLUG.test(candidate)) {
+    const encoded = encodeURIComponent(candidate)
+    if (SLUG.test(encoded)) return encoded
   }
-  return candidate
+
+  throw new FieldError(
+    'linkedinSlug',
+    'Paste your profile URL, or just the bit after linkedin.com/in/.',
+  )
 }
