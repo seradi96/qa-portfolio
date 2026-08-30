@@ -14,15 +14,15 @@
 // theatre that reads as protection, not protection. The real defenses are the ones
 // actually enforced per request below: the Origin check, the invite HMAC (forging
 // it requires INVITE_SECRET), the 16 KiB body cap, and the fact that a successful
-// POST only ever produces one email to the owner's own inbox, never a public write
-// — there is nothing here worth spamming for. A durable rate limit would need
-// shared state (e.g. an external KV store), which is a new dependency this task is
-// not scoped to add.
+// POST only ever writes one small file to the owner's own PRIVATE repository, never
+// a public write — there is nothing here worth spamming for. A durable rate limit
+// would need shared state (e.g. an external KV store), which is a new dependency
+// this task is not scoped to add.
 
 import { randomBytes } from 'node:crypto'
 
 import { CONSENT_VERSION } from '@/lib/consent'
-import { sendModerationEmail } from '@/lib/notify'
+import { putPending } from '@/lib/pending-store'
 import { isProjectSlug } from '@/lib/projects-meta'
 import {
   CAPS,
@@ -31,13 +31,7 @@ import {
   sanitizeAnswer,
   sanitizeIdentity,
 } from '@/lib/sanitize'
-import {
-  MAX_MODERATION_URL_CHARS,
-  SITE_ORIGIN,
-  assertSecret,
-  signModerationToken,
-  verifyInviteToken,
-} from '@/lib/token'
+import { SITE_ORIGIN, assertSecret, verifyInviteToken } from '@/lib/token'
 import type { TestimonialRecord } from '@/lib/token-types'
 
 /** §7 step 1. Roughly 8x the largest legitimate submission at the §5 caps. */
@@ -108,7 +102,6 @@ export async function POST(req: Request): Promise<Response> {
     // modules, so a module-scope assertSecret would fail the build on any machine
     // without the secrets rather than the request that needs them.
     const inviteSecret = assertSecret('INVITE_SECRET', process.env.INVITE_SECRET)
-    const modSecret = assertSecret('MOD_SECRET', process.env.MOD_SECRET)
 
     const raw = await readBoundedText(req)
     if (raw === null) {
@@ -196,8 +189,9 @@ export async function POST(req: Request): Promise<Response> {
       id: randomBytes(9).toString('base64url'),
       projectSlug: submittedSlug,
       // Provisional only. §5: publishedAt is stamped when the pull request is
-      // OPENED, so /api/testimonials/publish overwrites this. It exists here so the
-      // moderation preview renders a plausible date through the real card.
+      // OPENED, so /api/admin/publish overwrites this before calling publishTestimonial.
+      // It exists here so the /admin pending queue renders a plausible date through the
+      // real card.
       publishedAt: day,
       submittedAt: day,
       consent: { version: CONSENT_VERSION, at: consentAt },
@@ -205,48 +199,26 @@ export async function POST(req: Request): Promise<Response> {
       answers,
     }
 
-    // §7.7 — sign under m1 (gzip happens inside signModerationToken) and assert the
-    // whole moderation URL fits. Measured by `npm run check:tokens` against the 2400
-    // budget: English prose at every cap 1663 chars, Romanian at the absolute legal
-    // maximum (every cap, 60-char encoded slug) 1991 chars, pathological incompressible
-    // input ~2507 (still over, which is what the 413 below exists for). The assert is
-    // what keeps a later cap increase from silently producing an unusable link.
-    const moderationToken = signModerationToken(record, modSecret)
-    const moderationUrl = `${SITE_ORIGIN}/moderate#a=publish&t=${moderationToken}`
-    if (moderationUrl.length > MAX_MODERATION_URL_CHARS) {
-      const overUrlChars = moderationUrl.length - MAX_MODERATION_URL_CHARS
-      // The payload is gzipped, then base64url-encoded. Because it is compressed,
-      // removing one source character shrinks the compressed payload by LESS than one
-      // byte, not one-for-one. The multiplier is therefore above 1, not below it.
-      // This value (1.25) was chosen by measurement: 60 randomized trials with
-      // incompressible fixtures showed 0/60 success at 0.75, and 60/60 at 1.1+.
-      // Asking for ~25% more margin is safe (nothing to a submitter) but buys
-      // resilience against content that compresses differently from the test fixture.
-      // Future editors changing field caps should re-measure rather than reason about it.
-      const trimBy = Math.ceil(overUrlChars * 1.25)
-      return json(
-        {
-          error: `Your answers are about ${trimBy} characters too long to fit in one link. Shorten them a little and send again — nothing you typed has been lost.`,
-        },
-        413,
-      )
-    }
-
-    // §7.8 — THE SEND IS THE COMMIT POINT. Nothing in this feature is stored
-    // anywhere, so a failed send does not leave a half-succeeded write to
-    // reconcile: either the owner has the submission or the submitter still does.
-    // 503 tells the form to keep every typed answer and offer a retry.
+    // §7.7 — THE STORE WRITE IS THE COMMIT POINT. It replaces the email send, and
+    // inherits its meaning exactly: until this write succeeds the submission exists
+    // only in the submitter's own browser, so a failure must never read as success.
+    // 503 tells the form to keep every typed answer on screen and offer a retry.
     try {
-      await sendModerationEmail(record, moderationToken)
+      await putPending(record)
     } catch (err) {
+      // Message, not just name: a bad credential, a rate limit and an outage are three
+      // different problems with three different fixes, and a bare catch left no way to
+      // tell them apart. What pending-store throws is the GitHub status line plus a
+      // truncated response body — the token is a request header and is never echoed
+      // back, so this cannot log the credential.
       console.error(
-        '[testimonials/submit] send failed:',
+        '[testimonials/submit] pending write failed:',
         err instanceof Error ? err.message : typeof err,
       )
       return json(
         {
           error:
-            'Could not deliver this to Andrei right now. Nothing was lost — please try again in a minute.',
+            'Could not save this for Andrei right now. Nothing was lost — please try again in a minute.',
         },
         503,
       )

@@ -29,15 +29,16 @@ npm run lint:fix     # Auto-fix
 
 rm -rf .next && npm run dev    # Clear cache when the build acts stale
 
-npm run check:tokens # Token codec, HMAC, sanitisation and URL-budget assertions
+npm run check:tokens # Token codec, HMAC, sanitisation and admin-session assertions
 npm run postbuild    # Static-route / secret-leak / content gates (npm runs it after `build`)
 npm run invite       # Mint a testimonial invite link + paste-ready DM (needs .env.local)
 ```
 
-**`.env.local` must exist before `npm run build` works — a fresh clone cannot build.** Since the
-testimonials submit route exists, `src/lib/token.ts` asserts `INVITE_SECRET`/`MOD_SECRET` at module
-scope, and `next build` evaluates route-handler modules during "Collecting page data". No `.env.local`
-means:
+**`.env.local` must exist before `npm run build` works — a fresh clone cannot build.** Three
+module-scope assertions see to it: `src/lib/token.ts` asserts `INVITE_SECRET` and `MOD_SECRET`,
+and `src/lib/admin-auth.ts` asserts `ADMIN_PASSWORD` (minimum 24 characters) the same way. `next
+build` evaluates route-handler modules during "Collecting page data", so the moment a route imports
+either file the build needs all three. No `.env.local` means:
 
 ```
 Error: INVITE_SECRET is missing, empty, or shorter than 32 characters...
@@ -51,7 +52,7 @@ feature silently. Fix: `cp .env.local.example .env.local` and fill in real value
 not just unexported. Confirmed twice during Task 10; both times the first diagnosis (blaming the
 shell) was wrong.
 
-The verification gate is `npm run build` + `npm run lint`, plus `npm run check:tokens` — the one executable test suite in the repo, covering the testimonial token codec, HMAC verification, sanitisation and the URL budget. `npm run build` also fires `npm run postbuild`, which fails the build if the home page stopped being statically prerendered or a secret reached the bundle. There is no component or e2e harness. For visual changes, eyeball `npm run dev`.
+The verification gate is `npm run build` + `npm run lint`, plus `npm run check:tokens` — the one executable test suite in the repo, covering the testimonial token codec, HMAC verification, sanitisation and the admin session cookie. `npm run build` also fires `npm run postbuild`, which fails the build if the home page stopped being statically prerendered or a secret reached the bundle. There is no component or e2e harness. For visual changes, eyeball `npm run dev`.
 
 ## Architecture
 
@@ -64,15 +65,17 @@ qa-portfolio/
 │   │   ├── globals.css     # @import "tailwindcss", global rules, .card-surface classes
 │   │   ├── favicon.ico
 │   │   ├── invite/         # Testimonial invite form (noindex, 'use client')
-│   │   ├── moderate/       # Approve/discard panel (noindex, 'use client')
-│   │   ├── api/testimonials/{submit,publish}/route.ts
+│   │   ├── admin/          # Pending queue + password login (noindex, server component)
+│   │   ├── api/testimonials/submit/route.ts
+│   │   ├── api/admin/{login,publish,reject}/route.ts
 │   │   └── robots.ts
 │   ├── components/         # TestimonialCard, TestimonialsSection
 │   ├── content/
 │   │   └── testimonials.json   # The published testimonial store — second content source
 │   └── lib/
 │       ├── career.ts       # Career start dates + getYearsSince()
-│       └── …               # token*, sanitize, consent, projects-meta, testimonials, notify, publish-to-git
+│       └── …               # token*, sanitize, consent, projects-meta, testimonials,
+│                           #   admin-auth, pending-store, publish-to-git
 ├── scripts/                # invite.mjs, token-roundtrip.mjs, postbuild-check.mjs
 ├── docs/superpowers/       # Design specs and implementation plans (in-flight work)
 ├── docs/testimonials-runbook.md   # Operating the testimonials feature — read before touching it
@@ -89,7 +92,7 @@ qa-portfolio/
 
 Content lives in **two** places: `src/app/page.tsx` as plain arrays/objects above the JSX, and `src/content/testimonials.json`, the published testimonial store. There is no CMS and no data fetching — the JSON is a build-time import.
 
-- **`testimonials.json`** — written by merging the pull request that `/api/testimonials/publish` opens; hand-edit it only to correct or remove a record. `src/lib/testimonials.ts` validates on import and **drops** malformed records silently, so a bad edit makes a testimonial vanish rather than fail the build. Operating instructions: `docs/testimonials-runbook.md`.
+- **`testimonials.json`** — written by merging the pull request that `/api/admin/publish` opens; hand-edit it only to correct or remove a record. `src/lib/testimonials.ts` validates on import and **drops** malformed records silently, so a bad edit makes a testimonial vanish rather than fail the build. Operating instructions: `docs/testimonials-runbook.md`.
 
 - **`projects`** (line ~65) — ordered array; display order = array order. Each entry: `title`, `description`, `technologies[]`, optional `tooling[]`, `highlights[]`, `status`, `impact { businessValue, scale, timeline, efficiency? }`, `clientType`, `role`, `keyAchievements[]`, optional `subProjects[]`.
 - **`SubProject`** type (line 11) — `name`, `repo`, `stack[]`, `metrics`, `timeline`, `status`, `highlights[]`.
@@ -119,19 +122,25 @@ Content lives in **two** places: `src/app/page.tsx` as plain arrays/objects abov
 
 **The Testimonials nav label lives in two places** and drifts silently. `grep -n 'href="#testimonials"' src/app/page.tsx` returns exactly two hits: the desktop nav and the mobile menu. Both are gated on `TESTIMONIALS.length > 0`, so before the first published testimonial the section and both links are absent and the site is byte-identical to what it was. `PROJECT_LABELS` in `src/lib/projects-meta.ts` is likewise a second home for project identity — the `projects[]` entries carry `slug: '…' satisfies ProjectSlug` so TypeScript catches a bad slug, but nothing catches a stale label.
 
-**Four server-only env vars**, Vercel **Production only**: `INVITE_SECRET`, `MOD_SECRET`, `RESEND_API_KEY`, `GITHUB_TOKEN`. Never `NEXT_PUBLIC_` anything — `npm run postbuild` greps the whole build output for all four values and fails the build on a hit. Locally they live in `.env.local` (see `.env.local.example`; `.gitignore` un-ignores only the example).
+**Four server-only env vars**, Vercel **Production only**: `INVITE_SECRET`, `MOD_SECRET`, `ADMIN_PASSWORD`, `GITHUB_TOKEN`. Never `NEXT_PUBLIC_` anything — `npm run postbuild` greps the whole build output for all four values and fails the build on a hit. Locally they live in `.env.local` (see `.env.local.example`; `.gitignore` un-ignores only the example). Two of them changed meaning when the email path was removed: **`MOD_SECRET` no longer signs moderation tokens** — that family is deleted — it signs the `/admin` session cookie in `src/lib/admin-auth.ts` under the domain tag `s1`, so rotating it signs every admin session out at once. **`ADMIN_PASSWORD` must be generated and at least 24 characters**: it is the only gate on `/admin`, a Vercel function cannot be rate-limited (a module-scoped counter resets on every cold start and is not shared across concurrent lambdas), so entropy in the password is the whole defence, and `admin-auth.ts` refuses to load below 24. `RESEND_API_KEY` is gone: this feature sends no email at all.
 
-**Never `export const runtime = 'edge'`** in the route handlers. `'nodejs'` is the default and the only one that works: the token code uses `node:crypto` and `node:zlib`, and `'edge'` is deprecated in Next 16 and hard-fails the build.
+**The pending queue is a second, private GitHub repository.** `seradi96/qa-portfolio-pending`, one `pending/<id>.json` per unreviewed submission. Owner and repo name are **hardcoded module constants** in `src/lib/pending-store.ts`, exactly as they are in `src/lib/publish-to-git.ts`, and deliberately not environment-configurable — a mistyped variable must not be able to redirect submissions into a repository somebody else controls. `GITHUB_TOKEN` therefore has to reach **both** repos. Git cannot store an empty directory, so `GET /contents/pending` returns **404 when the queue is empty**; that is the normal state, not an error, and the store maps it to `[]`. A malformed pending file is dropped from the list with a logged warning rather than throwing, the same drop-not-throw discipline `testimonials.ts` uses. Operating instructions: `docs/testimonials-runbook.md`.
+
+**`/admin` and `/invite` are both `noindex` and both in `robots.ts`'s disallow list.** `/admin` is a server component that reads the `admin_session` cookie; with no valid cookie it renders a small `'use client'` login form and nothing else. Its POST routes carry the same hardcoded `SITE_ORIGIN` Origin check as the submit route, so **neither page can be exercised from localhost** — that is by design, not a bug to work around.
+
+**Never `export const runtime = 'edge'`** in the route handlers. `'nodejs'` is the default and the only one that works: the token, session and GitHub code uses `node:crypto` and `node:buffer`, and `'edge'` is deprecated in Next 16 and hard-fails the build.
 
 **`cacheComponents` is deliberately off, so `'use cache'` is unavailable.** Enabling the flag would remove `dynamic` / `revalidate` / `fetchCache` app-wide and force-enable PPR. This repo has no cache-invalidation primitive at all: publishing means merging a commit and letting Vercel rebuild. Do not reach for `revalidatePath` / `revalidateTag` / `updateTag` — `revalidateTag` needs a second argument in Next 16 (a TS2554 written from Next 15 muscle memory) and `updateTag` throws inside route handlers.
 
-**`output: 'export'` is now foreclosed.** `src/app/api/testimonials/*` are real route handlers; a static export would drop them.
+**`output: 'export'` is now foreclosed.** `src/app/api/testimonials/*` and `src/app/api/admin/*` are real route handlers, and `/admin` reads a cookie; a static export would drop all of it.
 
 **No schema.org `Review` JSON-LD, deliberately.** `Person` has no `review` property, so there is no valid subject to attach testimonials to; and `layout.tsx` injects JSON-LD via `dangerouslySetInnerHTML` with plain `JSON.stringify`, which does not escape `<` — visitor-authored text in that block could close the `<script>` tag. Testimonials are indexed as ordinary prerendered HTML.
 
 **`npm run build` runs `npm run postbuild`** (npm lifecycle, not a Next hook). It asserts `/` is still in `.next/prerender-manifest.json`'s `routes`, that no secret is in the bundle, and that every published author is present in `.next/server/app/index.html`. Running `next build` directly skips all of it.
 
-**`eslint-plugin-react-hooks` 7.1.1 is stricter than it looks.** `react-hooks/set-state-in-effect` flags a direct `setState` call inside a `useEffect` body, and `react-hooks/refs` has its own opinions about ref access during render. `src/app/invite/page.tsx` and `src/app/moderate/ModeratePanel.tsx` each wrap their effect body in `queueMicrotask(() => { … })` specifically to satisfy `set-state-in-effect` while reading a browser-only source (`location.hash`) that cannot be read during SSR. These are not stray boilerplate — read the comment above each one before deleting it; removing the wrapper without the `useSyncExternalStore` redesign the comment describes fails `npm run lint` and blocks the build.
+**`eslint-plugin-react-hooks` 7.1.1 is stricter than it looks.** `react-hooks/set-state-in-effect` flags a direct `setState` call inside a `useEffect` body, and `react-hooks/refs` has its own opinions about ref access during render. `src/app/invite/page.tsx` wraps its effect body in `queueMicrotask(() => { … })` specifically to satisfy `set-state-in-effect` while reading a browser-only source (`location.hash`) that cannot be read during SSR. It is not stray boilerplate — read the comment above it before deleting it; removing the wrapper without the `useSyncExternalStore` redesign the comment describes fails `npm run lint` and blocks the build. `/admin` does not need the same trick and must not copy it: it is a server component that reads the cookie during render, and its login form holds no derived state.
+
+A third rule from the same plugin, **`react-hooks/purity`**, bit during this build: it rejects `Math.floor(Date.now() / 1000)` written inline in a component body — even a **server** component, which re-executes per request rather than re-rendering the way client hooks do, so the rule's underlying worry (an impure render producing different output on every pass) does not really apply to it. The fix, in `src/app/admin/page.tsx`, was to move the clock read into a module-scope helper *function*, `nowSeconds()`, called once per request — a plain function re-evaluates on every call, so this is behaviour-preserving, not a workaround. Do not instead hoist it into a module-scope *constant*: that would freeze one `Date.now()` reading for the lifetime of the module, which on a warm serverless instance can span many requests, and turn a live cookie-expiry check into a stale one — a real bug, not a lint fix.
 
 ## Design System
 

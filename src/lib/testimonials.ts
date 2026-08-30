@@ -4,7 +4,10 @@ import { isProjectSlug } from '@/lib/projects-meta'
 
 export type Testimonial = TestimonialRecord
 
-const ID_RE = /^[A-Za-z0-9_-]{12}$/
+// Exported: pending-store.ts's getPending/deletePending guard an id against this same shape
+// before it is ever interpolated into a GitHub contents API path. One regex, one definition of
+// "a valid id" — the same reasoning that keeps isTestimonial a single, shared function below.
+export const ID_RE = /^[A-Za-z0-9_-]{12}$/
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const INSTANT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/
 // Matches the slug rule enforced at submit time. A slug, never a URL: it makes a
@@ -33,7 +36,7 @@ function isNonEmptyString(v: unknown): boolean {
  * Field caps are deliberately NOT re-checked here: a hand-trim that lands one grapheme over
  * a cap should still render, not vanish.
  */
-function isTestimonial(value: unknown): value is Testimonial {
+export function isTestimonial(value: unknown): value is Testimonial {
   if (!isObject(value)) return false
 
   if (!isStringMatching(value.id, ID_RE)) return false
@@ -65,8 +68,14 @@ function isTestimonial(value: unknown): value is Testimonial {
   return true
 }
 
-/** Descending string compare — newest / highest first. */
-function descending(a: string, b: string): number {
+/**
+ * Descending string compare — newest / highest first. Exported: pending-store.ts sorts its own
+ * queue with the exact same rule (newest submittedAt, ties broken by id) so the admin list and
+ * this public section never disagree about order. Pure and tiny enough that duplicating it would
+ * carry none of the drift risk isTestimonial/ID_RE do, but there is no reason to duplicate it
+ * either once it is already exported for the same file.
+ */
+export function descending(a: string, b: string): number {
   if (a === b) return 0
   return a < b ? 1 : -1
 }

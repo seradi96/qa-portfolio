@@ -75,7 +75,7 @@ if (!existsSync(HOME_HTML)) {
 }
 
 // ---------- 2. no secret in the bundle ----------
-const SECRET_NAMES = ['INVITE_SECRET', 'MOD_SECRET', 'RESEND_API_KEY', 'GITHUB_TOKEN']
+const SECRET_NAMES = ['INVITE_SECRET', 'MOD_SECRET', 'ADMIN_PASSWORD', 'GITHUB_TOKEN']
 
 // npm does not load .env.local, and `postbuild` is a separate process from `next build`, so read the
 // file directly — otherwise this gate is dead weight on the machine where the secrets actually live.
