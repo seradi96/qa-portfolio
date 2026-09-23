@@ -69,7 +69,9 @@ export default function Portfolio() {
     {
  title: "Deutsche Bahn - SAP ERP Integrated Railway Management System QA Automation Framework",
  slug: 'deutsche-bahn' satisfies ProjectSlug,
-  description: "Prevented €2M+ in potential system failures through proactive defect detection for Europe's largest transportation network. Reduced testing cycles by 40% while maintaining zero-tolerance safety standards for 2+ billion annual passengers. Led digital transformation of critical railway infrastructure supporting Germany's €40B transportation modernization program.",
+  // HIDDEN 2026-09-23 while the site is shown to the Deutsche Bahn team: the opening
+  // "Prevented €2M+ in potential system failures…" sentence. Full original in git (43247c1).
+  description: "Reduced testing cycles by 40% while maintaining zero-tolerance safety standards for 2+ billion annual passengers. Led digital transformation of critical railway infrastructure supporting Germany's €40B transportation modernization program.",
  technologies: [
    "Angular",
    "Java Spring Boot",
@@ -100,7 +102,8 @@ export default function Portfolio() {
   ],
  status: "Ongoing",
  impact: {
-   businessValue: "€2M+ prevented losses | 40% faster testing cycles | 25% fewer production defects | Zero safety incidents",
+   // HIDDEN 2026-09-23 (same round): leading "€2M+ prevented losses | " segment.
+   businessValue: "40% faster testing cycles | 25% fewer production defects | Zero safety incidents",
    scale: "2+ billion passengers annually | 340,000+ employees | 33,000+ km rail network | 24/7 operations",
    timeline: "January 2023 - October 2026 (current engagement)",
    efficiency: "50% faster issue resolution | 35% faster test execution | 55% automated coverage"
@@ -108,7 +111,8 @@ export default function Portfolio() {
   clientType: "Germany's National Railway Operator & Europe's Largest Rail Network",
   role: "QA Automation Engineer (Automation Lead on client engagement)",
  keyAchievements: [
-   "Slashed manual ERP testing by 85%",
+   // HIDDEN 2026-09-23 (same round):
+   // "Slashed manual ERP testing by 85%",
     "Delivered enterprise automation supporting €40B Digital Rail transformation program",
     "Led 15+ engineers in critical system bug resolution",
     "Mentored 5+ QAs - building sustainable testing excellence",
@@ -147,7 +151,7 @@ export default function Portfolio() {
    {
   title: "TOKERO QA Automation Platform",
   slug: 'tokero' satisfies ProjectSlug,
-  description: "Sole architect and maintainer of the QA stack at TOKERO (European crypto exchange): a Playwright functional framework in production since 2025, plus an NBomber performance suite and a custom Blazor reporting platform — both shipped to production in 2026. Owned end-to-end from July 2025 until the engagement concluded in August 2026, with all three systems handed over running in production.",
+  description: "Sole architect of the QA stack at TOKERO (European crypto exchange): a Playwright functional framework in production since 2025, plus an NBomber performance suite and a custom Blazor reporting platform — both designed and built solo, shipped to production in 2026. On the functional framework I owned the architecture and the QA team wrote tests on it alongside me. Built from July 2025 until the engagement concluded in August 2026 — evening and weekend work, outside my Deutsche Bahn hours — with all three systems handed over running in production.",
   technologies: [
     "Playwright",
     ".NET 10",
@@ -166,7 +170,7 @@ export default function Portfolio() {
   ],
   tooling: ["Claude Code", "Playwright MCP"],
   highlights: [
-    "Sole owner of 3 production QA systems serving the entire engineering org",
+    "Sole owner of `perf` and `pulse`; architect of `qaatpw`, which the QA team wrote tests on",
     "Designed and built `pulse` from zero: PostgreSQL schema, EF Core data layer, Blazor Server UI, NUnit XML parser, candlestick + trend analytics on ApexCharts",
     "Authored 9+ custom Claude Code skills now used by the QA team for standardized test and Page Object generation",
     "Built the SignalR/Blazor independent-circuit perf scenario — first real /_blazor blazorpack handshake load test in the codebase, closing a gap NBomber didn't cover out of the box",
@@ -176,7 +180,7 @@ export default function Portfolio() {
   status: "Completed",
   impact: {
     businessValue: "77 Page Objects · 49 test classes · 11 perf scenarios · 30+ perf profiles",
-    scale: "Sole owner of 3 production QA systems · functional + performance + reporting",
+    scale: "3 production QA systems · functional + performance + reporting",
     timeline: "July 2025 - August 2026"
   },
   clientType: "European cryptocurrency exchange",
@@ -473,6 +477,8 @@ export default function Portfolio() {
             </p>
           </div>
 
+          {/* HIDDEN 2026-09-23 while the site is shown to the Deutsche Bahn team — the
+              availability badge. Uncomment to bring it back.
           <div className="flex justify-center mb-10">
             <span className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-200 text-sm font-medium backdrop-blur-sm">
               <span className="relative flex h-2 w-2">
@@ -482,6 +488,7 @@ export default function Portfolio() {
               Available for new engagements from November 2026
             </span>
           </div>
+          */}
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <div className="relative group">
@@ -549,7 +556,7 @@ export default function Portfolio() {
             <div className="space-y-6">
               <p className="text-gray-300 text-lg leading-relaxed">
                 I believe quality isn&apos;t just about finding bugs—it&apos;s about building confidence in every release.
-                I&apos;m currently automation lead for <b className="text-amber-300">Deutsche Bahn&apos;s SAP ERP Integrated Railway Management System</b> at Heaven Solutions (Karate API, Playwright UI) — an engagement that concludes in October 2026. Through August 2026 I ran that in parallel with a second senior engagement as sole architect of the QA stack at <b className="text-amber-300">TOKERO</b> (Playwright&nbsp;.NET, NBomber, custom Blazor reporting), where I handed over three production QA systems. I thrive where technical precision meets collaborative problem-solving.
+                I&apos;m currently automation lead for <b className="text-amber-300">Deutsche Bahn&apos;s SAP ERP Integrated Railway Management System</b> at Heaven Solutions (Karate API, Playwright UI) — an engagement that concludes in October 2026. Through August 2026 I was also sole architect of the QA stack at <b className="text-amber-300">TOKERO</b> (Playwright&nbsp;.NET, NBomber, custom Blazor reporting) — evenings and weekends, picked up after the Deutsche Bahn day was done, and handed over as three production QA systems when that engagement closed. I thrive where technical precision meets collaborative problem-solving.
               </p>
 
               <p className="text-gray-300 text-lg leading-relaxed">
@@ -1682,9 +1689,11 @@ playwright-tests-automation/  // Playwright UI · TypeScript
             I&apos;d love to hear from you.
           </p>
 
+          {/* HIDDEN 2026-09-23 (same round) — the availability line.
           <p className="text-amber-300 text-center max-w-2xl mx-auto mb-12 -mt-8 font-medium">
             Currently wrapping up my engagement with Deutsche Bahn (through October 2026) — available for new roles and contracts from November 2026.
           </p>
+          */}
 
           <div className="max-w-lg mx-auto">
             {/* Contact Links */}

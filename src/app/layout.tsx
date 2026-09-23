@@ -19,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://aserban.ro"),
   title: "Șerban Andrei - Senior QA Automation Engineer & Test Architect",
-  description: `Senior QA Automation Engineer & Test Architect. ${yearsInTech}+ years in tech. Currently automation lead for Deutsche Bahn's SAP ERP railway system at Heaven Solutions (Karate API, Playwright UI) through October 2026, after concluding a senior engagement as sole QA architect at TOKERO (Playwright .NET, NBomber, Blazor reporting) in August 2026. AI-augmented QA practitioner. Available from November 2026.`,
+  description: `Senior QA Automation Engineer & Test Architect. ${yearsInTech}+ years in tech. Currently automation lead for Deutsche Bahn's SAP ERP railway system at Heaven Solutions (Karate API, Playwright UI) through October 2026, after concluding a senior engagement as sole QA architect at TOKERO (Playwright .NET, NBomber, Blazor reporting) in August 2026. AI-augmented QA practitioner.`,
   keywords: [
     "QA Automation Engineer",
     "Test Architect",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     url: "https://aserban.ro",
     siteName: "Șerban Andrei - QA Portfolio",
     title: "Șerban Andrei - Senior QA Automation Engineer & Test Architect",
-    description: "Senior QA Automation Engineer & Test Architect. Automation lead for Deutsche Bahn at Heaven Solutions through October 2026, after a senior engagement as sole QA architect at TOKERO. AI-augmented QA practitioner — available from November 2026.",
+    description: "Senior QA Automation Engineer & Test Architect. Automation lead for Deutsche Bahn at Heaven Solutions through October 2026, after a senior engagement as sole QA architect at TOKERO. AI-augmented QA practitioner.",
     images: [
       {
         url: "/og-image.jpg",
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Șerban Andrei - Senior QA Automation Engineer & Test Architect",
-    description: "Senior QA Automation Engineer & Test Architect. AI-augmented QA practitioner — available for new engagements from November 2026.",
+    description: "Senior QA Automation Engineer & Test Architect. AI-augmented QA practitioner.",
     images: ["/og-image.jpg"]
   }
 };
@@ -90,7 +90,7 @@ const personJsonLd = {
   url: "https://aserban.ro",
   image: "https://aserban.ro/og-image.jpg",
   description:
-    "Senior QA Automation Engineer & Test Architect. Automation lead for Deutsche Bahn's SAP ERP Integrated Railway Management System at Heaven Solutions through October 2026, after concluding a senior engagement as sole architect of the QA stack at TOKERO in August 2026. AI-augmented QA practitioner using Claude Code, MCP integrations, and spec-driven automation. Available for new engagements from November 2026.",
+    "Senior QA Automation Engineer & Test Architect. Automation lead for Deutsche Bahn's SAP ERP Integrated Railway Management System at Heaven Solutions through October 2026, after concluding a senior engagement as sole architect of the QA stack at TOKERO in August 2026. AI-augmented QA practitioner using Claude Code, MCP integrations, and spec-driven automation.",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Iași",
