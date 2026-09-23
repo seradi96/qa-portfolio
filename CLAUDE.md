@@ -92,7 +92,7 @@ qa-portfolio/
 
 Content lives in **two** places: `src/app/page.tsx` as plain arrays/objects above the JSX, and `src/content/testimonials.json`, the published testimonial store. There is no CMS and no data fetching — the JSON is a build-time import.
 
-- **`testimonials.json`** — written by merging the pull request that `/api/admin/publish` opens; hand-edit it only to correct or remove a record. `src/lib/testimonials.ts` validates on import and **drops** malformed records silently, so a bad edit makes a testimonial vanish rather than fail the build. Operating instructions: `docs/testimonials-runbook.md`.
+- **`testimonials.json`** — written by merging the pull request that `/api/admin/publish` opens; hand-edit it only to **remove** a record, never to reword one — consent v2 says a testimonial is published as written or not at all, and `/api/admin/publish` has no edit path (its body is `{"id"}` and the content comes from the pending store), so a hand-edit is the only way to break that promise. `src/lib/testimonials.ts` validates on import and **drops** malformed records silently, so a bad edit makes a testimonial vanish rather than fail the build. Operating instructions: `docs/testimonials-runbook.md`.
 
 - **`projects`** (line ~65) — ordered array; display order = array order. Each entry: `title`, `description`, `technologies[]`, optional `tooling[]`, `highlights[]`, `status`, `impact { businessValue, scale, timeline, efficiency? }`, `clientType`, `role`, `keyAchievements[]`, optional `subProjects[]`.
 - **`SubProject`** type (line 11) — `name`, `repo`, `stack[]`, `metrics`, `timeline`, `status`, `highlights[]`.

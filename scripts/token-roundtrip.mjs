@@ -245,6 +245,15 @@ check('extractLinkedinSlug passes a bare slug through', () => {
   assert(extractLinkedinSlug('  maria-popescu-8a41b2  ') === 'maria-popescu-8a41b2', 'padded bare slug rejected')
 })
 
+check('extractLinkedinSlug accepts an empty value as "no profile"', () => {
+  assert(extractLinkedinSlug('') === '', 'empty string rejected')
+  assert(extractLinkedinSlug('   ') === '', 'whitespace-only rejected')
+  // The optional path must not become a back door: a value the person actually typed still has to
+  // resolve, or a half-pasted URL would be filed as a deliberate "not on LinkedIn" on the card.
+  assertFieldError('linkedinSlug', () => extractLinkedinSlug('https://www.linkedin.com/'), 'bare host')
+  assertFieldError('linkedinSlug', () => extractLinkedinSlug(undefined), 'undefined is still not text')
+})
+
 check('extractLinkedinSlug refuses anything that is not a LinkedIn profile', () => {
   assertFieldError('linkedinSlug', () => extractLinkedinSlug('https://evil.example.com/in/maria'), 'foreign host')
   assertFieldError('linkedinSlug', () => extractLinkedinSlug('javascript:alert(1)'), 'javascript URL')

@@ -71,7 +71,7 @@ export default function Portfolio() {
  slug: 'deutsche-bahn' satisfies ProjectSlug,
   // HIDDEN 2026-09-23 while the site is shown to the Deutsche Bahn team: the opening
   // "Prevented €2M+ in potential system failures…" sentence. Full original in git (43247c1).
-  description: "Reduced testing cycles by 40% while maintaining zero-tolerance safety standards for 2+ billion annual passengers. Led digital transformation of critical railway infrastructure supporting Germany's €40B transportation modernization program.",
+  description: "Reduced testing cycles by 40% while expanding automated coverage across the ERP estate of Europe's largest rail network. Led digital transformation of critical railway infrastructure supporting Germany's €40B transportation modernization program.",
  technologies: [
    "Angular",
    "Java Spring Boot",
@@ -97,13 +97,13 @@ export default function Portfolio() {
     "Accelerated releases by 35% replacing legacy Selenium with cutting-edge Playwright automation",
     "Reduced customer-impacting defects by 25% through proactive developer collaboration",
     "Slashed critical issue resolution time by 50% through advanced monitoring and rapid diagnosis",
-    "Protected 2B+ passenger journeys through automated validation of 500+ critical workflows",
+    "Automated validation of 500+ critical business workflows across the ERP estate",
     "Eliminated manual UAT bottlenecks with real-time stakeholder reporting and validation"
   ],
  status: "Ongoing",
  impact: {
    // HIDDEN 2026-09-23 (same round): leading "€2M+ prevented losses | " segment.
-   businessValue: "40% faster testing cycles | 25% fewer production defects | Zero safety incidents",
+   businessValue: "40% faster testing cycles | 25% fewer production defects",
    scale: "2+ billion passengers annually | 340,000+ employees | 33,000+ km rail network | 24/7 operations",
    timeline: "January 2023 - October 2026 (current engagement)",
    efficiency: "50% faster issue resolution | 35% faster test execution | 55% automated coverage"

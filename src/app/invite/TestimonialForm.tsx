@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CAPS, graphemeCount } from '@/lib/sanitize'
 import { PROJECT_LABELS, PROJECT_SLUGS, isProjectSlug, type ProjectSlug } from '@/lib/projects-meta'
-import { CONSENT_TEXT_V1 } from '@/lib/consent'
+import { CONSENT_TEXT_CURRENT } from '@/lib/consent'
 import type { InviteFields } from '@/lib/token-types'
 
 type AnswerKey = 'whatIDid' | 'whatChanged' | 'hiringManager' | 'anythingElse'
@@ -66,6 +66,10 @@ type Draft = {
   role: string
   company: string
   linkedinSlug: string
+  // Client-side only; it never goes on the wire. An empty field is ambiguous — skipped, or no
+  // profile? — and the card states the answer out loud, so the submitter has to be the one who
+  // said it. Ticking this is that statement; the record still just carries linkedinSlug: "".
+  noLinkedin: boolean
   projectSlug: ProjectSlug
   whatIDid: string
   whatChanged: string
@@ -99,6 +103,7 @@ function initialDraft(fields: InviteFields): Draft {
     role: fields.role,
     company: fields.company,
     linkedinSlug: '',
+    noLinkedin: false,
     projectSlug: isProjectSlug(fields.projectSlug) ? fields.projectSlug : 'other',
     whatIDid: '',
     whatChanged: '',
@@ -133,6 +138,7 @@ function mergeDraft(base: Draft, raw: unknown): Draft | null {
     role: str('role', base.role),
     company: str('company', base.company),
     linkedinSlug: str('linkedinSlug', base.linkedinSlug),
+    noLinkedin: typeof r.noLinkedin === 'boolean' ? r.noLinkedin : base.noLinkedin,
     projectSlug: isProjectSlug(r.projectSlug) ? r.projectSlug : base.projectSlug,
     whatIDid: str('whatIDid', base.whatIDid),
     whatChanged: str('whatChanged', base.whatChanged),
@@ -148,6 +154,7 @@ function sameAsPrefill(draft: Draft, fields: InviteFields): boolean {
     draft.role === base.role &&
     draft.company === base.company &&
     draft.linkedinSlug === base.linkedinSlug &&
+    draft.noLinkedin === base.noLinkedin &&
     draft.projectSlug === base.projectSlug &&
     draft.whatIDid === '' &&
     draft.whatChanged === '' &&
@@ -311,9 +318,12 @@ export default function TestimonialForm({
     if (!draft.name.trim()) return fail('Your name is missing.', 'name')
     if (!draft.role.trim()) return fail('Your role at the time is missing.', 'role')
     if (!draft.company.trim()) return fail('Your company at the time is missing.', 'company')
-    if (!draft.linkedinSlug.trim()) {
+    // Required again, but with a way out. Before the checkbox existed an empty field had to be
+    // accepted silently, which meant a distracted submitter and a submitter with no profile
+    // produced the same record — and the card says "Not on LinkedIn" about both.
+    if (!draft.noLinkedin && !draft.linkedinSlug.trim()) {
       return fail(
-        'The LinkedIn link is the part that makes this verifiable to a stranger, so it is the one identity field I do need.',
+        'Add your LinkedIn, or tick "I don’t have one" underneath — either is fine, I just need to know which.',
         'linkedinSlug',
       )
     }
@@ -345,7 +355,7 @@ export default function TestimonialForm({
           name: draft.name,
           role: draft.role,
           company: draft.company,
-          linkedinSlug: draft.linkedinSlug,
+          linkedinSlug: draft.noLinkedin ? '' : draft.linkedinSlug,
           answers: {
             whatIDid: draft.whatIDid,
             whatChanged: draft.whatChanged,
@@ -507,7 +517,12 @@ export default function TestimonialForm({
             </p>
             {/* The visible focus ring sits on the wrapper via focus-within, because the prefix and
                 the input are one control to a reader even though they are two elements. */}
-            <div className="mt-2 flex items-stretch overflow-hidden rounded-xl border border-white/10 bg-white/5 focus-within:ring-2 focus-within:ring-amber-500">
+            <div
+              className={
+                'mt-2 flex items-stretch overflow-hidden rounded-xl border border-white/10 bg-white/5 focus-within:ring-2 focus-within:ring-amber-500 ' +
+                (draft.noLinkedin ? 'opacity-50' : '')
+              }
+            >
               <span className="select-none px-3 py-3 text-base text-gray-500">linkedin.com/in/</span>
               <input
                 id="linkedinSlug"
@@ -516,15 +531,39 @@ export default function TestimonialForm({
                 inputMode="url"
                 value={draft.linkedinSlug}
                 onChange={(e) => setField('linkedinSlug', stripLinkedinUrl(e.target.value))}
+                disabled={draft.noLinkedin}
                 aria-describedby="linkedinSlug-help"
                 autoComplete="off"
                 autoCapitalize="off"
                 autoCorrect="off"
                 spellCheck={false}
                 enterKeyHint="next"
-                className="min-w-0 flex-1 bg-transparent py-3 pr-4 text-base text-gray-100 placeholder:text-gray-500 focus:outline-none"
+                className="min-w-0 flex-1 bg-transparent py-3 pr-4 text-base text-gray-100 placeholder:text-gray-500 focus:outline-none disabled:cursor-not-allowed"
               />
             </div>
+            {/* Disabled, not cleared: a mis-tick would otherwise throw away a pasted URL, and the
+                submit already sends "" whenever this is checked, so the hidden value is inert. */}
+            <label
+              htmlFor="noLinkedin"
+              className="mt-3 flex w-fit cursor-pointer items-center gap-3 text-sm text-gray-300"
+            >
+              <input
+                id="noLinkedin"
+                name="noLinkedin"
+                type="checkbox"
+                checked={draft.noLinkedin}
+                onChange={(e) => setField('noLinkedin', e.target.checked)}
+                className="h-5 w-5 shrink-0 accent-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+              I don&apos;t have a LinkedIn profile
+            </label>
+            {draft.noLinkedin && (
+              <p className="mt-2 text-sm text-gray-400">
+                Your quote goes up without a link, and the card says so &mdash; &ldquo;Not on
+                LinkedIn &mdash; contact on request&rdquo;. Anyone who wants to check asks me and I
+                put them in touch with you first.
+              </p>
+            )}
           </div>
 
           <div className="min-w-0">
@@ -600,7 +639,7 @@ export default function TestimonialForm({
             />
             {/* Rendered from the constant, not retyped: consent.version is only an honest record of
                 what was agreed if the sentence shown is provably the sentence archived. */}
-            <span className="text-sm leading-relaxed text-gray-300">{CONSENT_TEXT_V1}</span>
+            <span className="text-sm leading-relaxed text-gray-300">{CONSENT_TEXT_CURRENT}</span>
           </label>
 
           <div className="space-y-4 text-sm leading-relaxed text-gray-400">
@@ -610,8 +649,8 @@ export default function TestimonialForm({
             </p>
             <p>
               <strong className="text-gray-300">What gets published</strong> &mdash; your name, your
-              role and company at the time we worked together, your LinkedIn link, and your answers
-              above. Nothing else.
+              role and company at the time we worked together, your LinkedIn link if you give one,
+              and your answers above. Nothing else.
             </p>
             <p>
               <strong className="text-gray-300">What I don&apos;t collect</strong> &mdash; I&apos;m

@@ -22,8 +22,8 @@ export default function TestimonialsSection() {
           <p>
             <span className="text-gray-300 font-semibold">How this section works</span> — I invite people by private
             link, one at a time, and only people I&apos;ve actually worked with; there&apos;s no open form, so every
-            name here is someone I can point to a project with. I read submissions before they go up and may fix a
-            typo or trim for length, never change what someone meant.
+            name here is someone I can point to a project with. Not everyone keeps a LinkedIn profile — where a
+            card carries no link, ask me and I&apos;ll put you in touch with the person directly.
           </p>
           <p>
             These are personal comments from people I worked with directly, written in a personal capacity. Company

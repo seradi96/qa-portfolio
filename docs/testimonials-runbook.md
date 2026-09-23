@@ -162,7 +162,14 @@ Open `https://aserban.ro/admin`. First visit on a device shows a single password
 
 Each pending submission is rendered by the **real `TestimonialCard`**, the same component the live
 site uses, so what you publish is byte-for-byte what ships. Two buttons per submission, both POSTs,
-both guarded by the session cookie and by the hardcoded `SITE_ORIGIN` Origin check:
+both guarded by the session cookie and by the hardcoded `SITE_ORIGIN` Origin check.
+
+**There is no third button, and that is the point.** Consent v2 promises the submitter that their
+words go up as written or not at all, so the decision is publish or reject — never "publish with a
+small fix". The code already enforced this before the text said it: `POST /api/admin/publish` takes
+a body of `{"id": "…"}` and reads the content from the pending store, so no edit can reach it. If a
+published testimonial has a typo, the honest fix is to ask its author for a fresh submission
+through a new invite link, not to reword `testimonials.json`.
 
 - **Publish** → `POST /api/admin/publish` → re-validates every field, then a branch
   `testimonial/<id>`, a commit, and a pull request against `src/content/testimonials.json`, then
@@ -197,6 +204,15 @@ empty directory, so the store reads a 404 from `GET /contents/pending` and retur
 Before you merge, do the one check no script can do: click **Verify on LinkedIn** on the card and
 confirm it lands on the real person. Slugs are percent-encoded in the wild — this site's own is
 `%C8%99erban-andrei-5a14a51a5` — so a broken slug is a genuine failure mode, not a theoretical one.
+
+**The LinkedIn link is optional** (since 2026-09-23): not everyone has a profile, and the first
+person invited did not. A submission with the field left empty stores `linkedinSlug: ""`, and the
+card then reads "Not on LinkedIn — contact on request" instead of carrying a link. Nothing else
+changes. An empty slug is the *only* value that skips validation — anything non-empty must still
+resolve to a real slug, both at submit and in `isTestimonial`, so a malformed one drops the record
+from the page rather than building a link to nowhere. For a linkless card, the check above becomes
+yours to make offline: you are the only verification a reader has, which is what the sentence in
+the section footer promises on your behalf.
 
 `/admin` cannot be exercised from `localhost`: its POST routes carry the same absolute `SITE_ORIGIN`
 check as the submit route. That is deliberate and unchanged from the original design.

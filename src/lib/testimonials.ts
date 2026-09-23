@@ -55,7 +55,11 @@ export function isTestimonial(value: unknown): value is Testimonial {
   if (!isNonEmptyString(author.name)) return false
   if (!isNonEmptyString(author.role)) return false
   if (!isNonEmptyString(author.company)) return false
-  if (!isStringMatching(author.linkedinSlug, LINKEDIN_SLUG_RE)) return false
+  // '' means "no public profile" — see extractLinkedinSlug. Anything non-empty must still be a
+  // real slug, so a value corrupted by a hand-edit drops the record rather than rendering a link
+  // to nothing.
+  if (typeof author.linkedinSlug !== 'string') return false
+  if (author.linkedinSlug !== '' && !LINKEDIN_SLUG_RE.test(author.linkedinSlug)) return false
 
   const answers = value.answers
   if (!isObject(answers)) return false

@@ -118,6 +118,17 @@ const DECODED_SLUG = /^[\p{L}\p{M}\p{N}_-]{3,60}$/u
 export function extractLinkedinSlug(value: unknown): string {
   if (typeof value !== 'string') throw new FieldError('linkedinSlug', 'Expected text.')
   const trimmed = value.replace(BIDI, '').replace(ZERO_WIDTH, '').trim()
+
+  // Optional. A profile link was never proof — anyone can make one in ten minutes — so requiring
+  // it turned away real colleagues who are not on LinkedIn while a fabricated testimonial with an
+  // invented slug would have sailed through. '' is a value here, not a failure: the card renders
+  // without the link.
+  //
+  // Only a value that is genuinely EMPTY takes this path. Anything the person actually typed must
+  // still resolve to a real slug, so a half-pasted URL earns the error below instead of being
+  // quietly filed as "no profile" — which would read, on the card, as a deliberate absence.
+  if (trimmed === '') return ''
+
   const matched = LINKEDIN_URL.exec(trimmed)
   const candidate = matched ? matched[1] : trimmed.replace(/^\/+/, '').replace(/\/+$/, '')
   if (SLUG.test(candidate)) return candidate
