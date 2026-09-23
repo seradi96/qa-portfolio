@@ -269,7 +269,7 @@ function pullRequestBody(record: TestimonialRecord, authorAlreadyPublished: bool
     lines.push('', '### What changed because of it', answers.whatChanged)
   }
   if (answers.whatIDid.trim() !== '') {
-    lines.push('', '### What I was doing on the team', answers.whatIDid)
+    lines.push('', '### What Andrei was doing on the team', answers.whatIDid)
   }
   if (answers.anythingElse.trim() !== '') {
     lines.push('', '### Anything else', answers.anythingElse)

@@ -61,7 +61,7 @@ export default function TestimonialCard({ testimonial }: { testimonial: Testimon
             {whatIDid.length > 0 && (
               <div>
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-amber-400/80 mb-1">
-                  What I was doing on the team
+                  What Andrei was doing on the team
                 </h4>
                 <p dir="auto" className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
                   {whatIDid}
