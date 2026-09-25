@@ -28,13 +28,20 @@ export default function TestimonialCard({ testimonial }: { testimonial: Testimon
     <article className="card-surface p-6 flex flex-col h-full min-w-0">
       {/* Amber quote glyph. Inline SVG on purpose: no Heroicon covers it, and no emoji. */}
       <svg
-        className="w-8 h-8 text-amber-400 mb-4 shrink-0"
+        className="w-8 h-8 text-amber-400 mb-3 shrink-0"
         viewBox="0 0 24 24"
         fill="currentColor"
         aria-hidden="true"
       >
         <path d="M7.5 5.5H4.2A1.2 1.2 0 0 0 3 6.7v4.1c0 .7.5 1.2 1.2 1.2h2.2c0 2-1 3.3-3 3.9v2.6c3.6-.8 5.6-3.4 5.6-7.4V6.7c0-.7-.5-1.2-1.2-1.2H7.5zM18.8 5.5h-3.3a1.2 1.2 0 0 0-1.2 1.2v4.1c0 .7.5 1.2 1.2 1.2h2.2c0 2-1 3.3-3 3.9v2.6c3.6-.8 5.6-3.4 5.6-7.4V6.7c0-.7-.5-1.2-1.2-1.2z" />
       </svg>
+
+      {/* Labelled like the answers below it, and for the same reason: the quote is an answer to
+          a question the author was asked, not unprompted praise. Saying which question turns
+          "he was great to work with" into "this is what they would tell someone hiring me". */}
+      <h4 className="text-xs font-semibold uppercase tracking-wider text-amber-400/80 mb-2">
+        To a hiring manager
+      </h4>
 
       {/* dir="auto" on every field carrying someone else's words — a Romanian or Arabic
           submission must not be forced LTR. whitespace-pre-line keeps the paragraph breaks

@@ -128,7 +128,7 @@ I'm adding a short testimonials section to my portfolio (aserban.ro) and I'd lov
 
 The link below is just for you. Four short questions, the last one open-ended; five to ten minutes, and it works fine on a phone. It opens already filled in with your name and role, so mostly you're proof-reading.
 
-What would appear on the site: your name, your role and company at the time we worked together, a link to your LinkedIn, and what you write. Nothing else. Nothing goes live until I've read it, and you can have it taken down later at any point.
+What would appear on the site: your name, your role and company at the time we worked together, a link to your LinkedIn if you use it, and what you write. Nothing else. Nothing goes live until I've read it, and I publish it exactly as you wrote it or not at all. You can have it taken down later at any point.
 
 Two honest asks: keep it to things that are fine to say publicly — no internal detail — and do check your employer is comfortable with it, since some companies have rules about giving references.
 
