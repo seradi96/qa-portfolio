@@ -1,1 +1,24 @@
-[]
+[
+  {
+    "id": "aPUR8Ec5VbDY",
+    "projectSlug": "deutsche-bahn",
+    "publishedAt": "2026-09-25",
+    "submittedAt": "2026-09-23",
+    "consent": {
+      "version": 2,
+      "at": "2026-09-23T16:16:26Z"
+    },
+    "author": {
+      "name": "Andreas Wenske",
+      "role": "Test Manager",
+      "company": "CGI",
+      "linkedinSlug": ""
+    },
+    "answers": {
+      "whatIDid": "He served as our Test Automation Engineer and team co-lead. He built our QA pipeline from the ground up, establishing the foundation for our automated testing processes. He took ownership of onboarding new team members, ensuring they could quickly become productive and integrate into our workflows.",
+      "whatChanged": "His impact was transformative. Through his innovative approaches and optimizations, we reduced regression test duration from several days to a fraction of the time, significantly boosting team productivity. He introduced best practices and quality-focused topics that fundamentally improved how we work. His leadership helped establish a culture of continuous improvement across the team.",
+      "hiringManager": "I would tell them that Andrei is an exceptional engineer who combines deep technical expertise with strong leadership abilities. He consistently delivered innovative solutions, took initiative on complex challenges, and was instrumental in our team's success. Working with him was always constructive, professional, and inspiring. I can recommend him without reservation.",
+      "anythingElse": "Andrei's positive attitude and commitment to quality made him a pleasure to work with. He didn't just complete tasks—he actively looked for ways to improve processes and mentor others. Any team would be fortunate to have him."
+    }
+  }
+]
