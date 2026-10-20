@@ -1,5 +1,27 @@
 [
   {
+    "id": "eA5bZheV7Ktb",
+    "projectSlug": "deutsche-bahn",
+    "publishedAt": "2026-10-20",
+    "submittedAt": "2026-10-15",
+    "consent": {
+      "version": 2,
+      "at": "2026-10-15T07:28:40Z"
+    },
+    "author": {
+      "name": "Cara Aileen Czech",
+      "role": "Release Train Engineer",
+      "company": "DB InfraGO AG",
+      "linkedinSlug": "cara-czech"
+    },
+    "answers": {
+      "whatIDid": "He was the driving force improving our quality assurance approach",
+      "whatChanged": "Andrei modernized our approach to quality assurance through his expert knowledge and excellent use of AI. He sped up test case creation and achieved management awareness for test automation, causing our regression test to become shorter and our releases to be more efficient.",
+      "hiringManager": "Andrei tirelessly pushes toward a better QA approach and speaks up when he thinks the plan is wrong, which is a precious character trait. I'd love to work with him again.",
+      "anythingElse": ""
+    }
+  },
+  {
     "id": "aPUR8Ec5VbDY",
     "projectSlug": "deutsche-bahn",
     "publishedAt": "2026-09-25",
